@@ -3,9 +3,15 @@ from ayon_core.tools.utils import host_tools
 from ayon_core.pipeline import (get_current_folder_path,
                                 get_current_task_name)
 
+from PySide2 import QtCore
+
 import IECore
 import Gaffer
 import GafferUI
+
+__pre_task_changed_signal = Gaffer.Signal2()
+__post_task_changed_signal = Gaffer.Signal2()
+
 
 self = sys.modules[__name__]
 self.root = None
@@ -84,10 +90,30 @@ def _init_context_menu(menu):
 def _install_menus():
     top_menu = GafferUI.ScriptWindow.menuDefinition(application)
     top_menu.append("AYON", {"subMenu": _init_ayon_menu})
-    top_menu.append(get_current_folder_path(), {"subMenu": _init_context_menu})
+    top_menu.append("Context", {"subMenu": _init_context_menu})
+
+    __post_task_changed_signal.connect(update_shot_menu, scoped = False)
 
 def setup_project(_, script):
-    print("Setting up project")
+    __pre_task_changed_signal(script, get_current_task_name())
+    print("setup_project")
+    __post_task_changed_signal(script, get_current_task_name())
+
+def update_shot_menu(script, task):
+    script_window = GafferUI.ScriptWindow.acquire(script)
+
+    if not script_window.visible():
+        QtCore.QTimer.singleShot(1000, lambda: update_shot_menu(script, task))
+        return
+    
+    container = script_window.getChild()
+    menu_bar = container[0]
+    if not isinstance(menu_bar, GafferUI.MenuBar):
+        menu_bar = menu_bar[0]
+
+    action_list = menu_bar._qtWidget().actions()
+    menu_text = "{} | {}".format(get_current_folder_path(), task) 
+    action_list[-1].setText(menu_text)
 
 application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 

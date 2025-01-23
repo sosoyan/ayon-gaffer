@@ -15,7 +15,7 @@ import Gaffer
 import GafferUI
 
 
-log = Logger.get_logger("ayon_gaffer.startup.gui.menu")
+log = Logger.get_logger("ayon_gaffer.startup.gui.setup")
 
 __pre_task_changed_signal = Gaffer.Signal2()
 __post_task_changed_signal = Gaffer.Signal2()
@@ -24,7 +24,7 @@ def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
     return script_window._qtWidget()  
 
-def _init_ayon_menu(menu, script):
+def _init_ayon_menu(menu):
     main_menu = IECore.MenuDefinition()
 
     main_menu.append(
@@ -75,7 +75,7 @@ def _init_ayon_menu(menu, script):
 
     return main_menu
 
-def _init_context_menu(menu, script):
+def _init_context_menu(menu):
     context_menu = IECore.MenuDefinition()
     
     context_menu.append(
@@ -88,14 +88,14 @@ def _init_context_menu(menu, script):
 
 def _install_menus(script):
     top_menu = GafferUI.ScriptWindow.menuDefinition(script)
-    top_menu.append("AYON", {"subMenu": lambda: _init_ayon_menu(top_menu, script)})
-    top_menu.append("Context", {"subMenu": lambda: _init_context_menu(top_menu, script)})
+    top_menu.append("AYON", {"subMenu": _init_ayon_menu})
+    top_menu.append("Context", {"subMenu": _init_context_menu})
 
     __post_task_changed_signal.connect(update_shot_menu, scoped = False)
 
 def setup_project(_, script):
     __pre_task_changed_signal(script, get_current_task_name())
-    log.info("Setup project ...")
+    log.info("Task changed ...")
     __post_task_changed_signal(script, get_current_task_name())
 
 def update_shot_menu(script, task):

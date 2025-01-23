@@ -1,5 +1,6 @@
 from .addon import (
     GafferAddon,
+    GAFFER_HOST_DIR
 )
 
 

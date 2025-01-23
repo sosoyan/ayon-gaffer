@@ -1,32 +1,30 @@
 import sys
+
+from ayon_core.lib import Logger
 from ayon_core.tools.utils import host_tools
+from ayon_core.pipeline import install_host
 from ayon_core.pipeline import (get_current_folder_path,
                                 get_current_task_name)
 
 from PySide2 import QtCore
 
+from ayon_gaffer.api import GafferHost
+
 import IECore
 import Gaffer
 import GafferUI
 
+
+log = Logger.get_logger("ayon_gaffer.startup.gui.menu")
+
 __pre_task_changed_signal = Gaffer.Signal2()
 __post_task_changed_signal = Gaffer.Signal2()
 
-self = sys.modules[__name__]
-self.root = None
-
-def set_root(root: Gaffer.ScriptNode):
-    self.root = root
-
 def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
-    print(script_window)
-    print(dir(script_window))
-    set_root(script_window.scriptNode())
-    return script_window._qtWidget()
+    return script_window._qtWidget()  
 
-def _init_ayon_menu(menu):
-    
+def _init_ayon_menu(menu, script):
     main_menu = IECore.MenuDefinition()
 
     main_menu.append(
@@ -77,7 +75,7 @@ def _init_ayon_menu(menu):
 
     return main_menu
 
-def _init_context_menu(menu):
+def _init_context_menu(menu, script):
     context_menu = IECore.MenuDefinition()
     
     context_menu.append(
@@ -89,15 +87,15 @@ def _init_context_menu(menu):
     return context_menu
 
 def _install_menus(script):
-    top_menu = GafferUI.ScriptWindow.menuDefinition(application)
-    top_menu.append("AYON", {"subMenu": _init_ayon_menu})
-    top_menu.append("Context", {"subMenu": _init_context_menu})
+    top_menu = GafferUI.ScriptWindow.menuDefinition(script)
+    top_menu.append("AYON", {"subMenu": lambda: _init_ayon_menu(top_menu, script)})
+    top_menu.append("Context", {"subMenu": lambda: _init_context_menu(top_menu, script)})
 
     __post_task_changed_signal.connect(update_shot_menu, scoped = False)
 
 def setup_project(_, script):
     __pre_task_changed_signal(script, get_current_task_name())
-    print("setup_project")
+    log.info("Setup project ...")
     __post_task_changed_signal(script, get_current_task_name())
 
 def update_shot_menu(script, task):
@@ -118,4 +116,9 @@ def update_shot_menu(script, task):
 
 application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 
-_install_menus(application)
+def _install_ayon():
+    log.info("Installing ayon ...")
+    install_host(GafferHost(application))
+
+_install_ayon()
+_install_menus(application.root())

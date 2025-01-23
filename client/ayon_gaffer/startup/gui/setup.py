@@ -12,7 +12,6 @@ import GafferUI
 __pre_task_changed_signal = Gaffer.Signal2()
 __post_task_changed_signal = Gaffer.Signal2()
 
-
 self = sys.modules[__name__]
 self.root = None
 
@@ -21,6 +20,8 @@ def set_root(root: Gaffer.ScriptNode):
 
 def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
+    print(script_window)
+    print(dir(script_window))
     set_root(script_window.scriptNode())
     return script_window._qtWidget()
 
@@ -87,7 +88,7 @@ def _init_context_menu(menu):
         )
     return context_menu
 
-def _install_menus():
+def _install_menus(script):
     top_menu = GafferUI.ScriptWindow.menuDefinition(application)
     top_menu.append("AYON", {"subMenu": _init_ayon_menu})
     top_menu.append("Context", {"subMenu": _init_context_menu})
@@ -117,4 +118,4 @@ def update_shot_menu(script, task):
 
 application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 
-_install_menus()
+_install_menus(application)

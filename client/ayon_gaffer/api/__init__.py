@@ -1,3 +1,9 @@
-from .pipeline import GafferHost
+from .pipeline import (
+    setup_project,
+    GafferHost
+    )
 
-__all__ = ["GafferHost"]
+__all__ = [
+    "setup_project", 
+    "GafferHost"
+    ]

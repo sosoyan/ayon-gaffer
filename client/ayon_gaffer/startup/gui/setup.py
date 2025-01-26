@@ -13,6 +13,6 @@ application.root()["scripts"].childAddedSignal().connect(setup_project, scoped =
 def _install_ayon():
     log.info("Installing ayon ...")
     install_host(GafferHost(application))
-    install_menu(application.root())
+    install_menu(application)
 
 _install_ayon()

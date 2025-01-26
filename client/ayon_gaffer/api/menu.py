@@ -15,6 +15,22 @@ def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
     return script_window._qtWidget()  
 
+def update_shot_menu(script, task):
+    script_window = GafferUI.ScriptWindow.acquire(script)
+
+    if not script_window.visible():
+        QtCore.QTimer.singleShot(1000, lambda: update_shot_menu(script, task))
+        return
+    
+    container = script_window.getChild()
+    menu_bar = container[0]
+    if not isinstance(menu_bar, GafferUI.MenuBar):
+        menu_bar = menu_bar[0]
+
+    action_list = menu_bar._qtWidget().actions()
+    menu_text = "{} | {}".format(get_current_folder_path(), task) 
+    action_list[-1].setText(menu_text)
+
 def init_ayon_menu(menu):
     main_menu = IECore.MenuDefinition()
 
@@ -77,25 +93,9 @@ def init_context_menu(menu):
         )
     return context_menu
 
-def install_menu(script):
-    top_menu = GafferUI.ScriptWindow.menuDefinition(script)
+def install_menu(application):
+    top_menu = GafferUI.ScriptWindow.menuDefinition(application.root())
     top_menu.append("AYON", {"subMenu": init_ayon_menu})
     top_menu.append("Context", {"subMenu": init_context_menu})
 
     GafferSignal.post_task_changed().connect(update_shot_menu, scoped = False)
-
-def update_shot_menu(script, task):
-    script_window = GafferUI.ScriptWindow.acquire(script)
-
-    if not script_window.visible():
-        QtCore.QTimer.singleShot(1000, lambda: update_shot_menu(script, task))
-        return
-    
-    container = script_window.getChild()
-    menu_bar = container[0]
-    if not isinstance(menu_bar, GafferUI.MenuBar):
-        menu_bar = menu_bar[0]
-
-    action_list = menu_bar._qtWidget().actions()
-    menu_text = "{} | {}".format(get_current_folder_path(), task) 
-    action_list[-1].setText(menu_text)

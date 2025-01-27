@@ -1,5 +1,6 @@
 import ayon_api
 from ayon_core.tools.utils import host_tools
+from ayon_core.pipeline import context_tools
 from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path,
                                 get_current_task_name)
@@ -10,8 +11,12 @@ import GafferUI
 
 from PySide2 import QtCore
 
+from ayon_gaffer.api.project import setup_project
 from ayon_gaffer.api.signals import GafferSignal
 
+
+__context_menu = IECore.MenuDefinition()
+__set_tasks_menu = IECore.MenuDefinition()
 
 def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
@@ -68,11 +73,11 @@ def init_ayon_menu(menu):
 
     return main_menu
 
-def update_context_menu_text(script, task):
+def update_context_menu_text(script, tasks):
     script_window = GafferUI.ScriptWindow.acquire(script)
 
     if not script_window.visible():
-        QtCore.QTimer.singleShot(1000, lambda: update_context_menu_text(script, task))
+        QtCore.QTimer.singleShot(1000, lambda: update_context_menu_text(script, tasks))
         return
     
     container = script_window.getChild()
@@ -81,10 +86,34 @@ def update_context_menu_text(script, task):
         menu_bar = menu_bar[0]
 
     action_list = menu_bar._qtWidget().actions()
-    menu_text = "{} | {}".format(get_current_folder_path(), task) 
-    action_list[-1].setText(menu_text)
+    menu_text = f"{get_current_project_name()}{get_current_folder_path()} | {get_current_task_name()}"
 
-def process_context_menu(menu, item):
+    action_list[-1].setText(menu_text)
+    
+    #for task in tasks:
+    #    __set_tasks_menu.append(task["name"], {"command": lambda: context_tools.change_current_context(None, task)})
+    
+def update_context(root, item):
+    project = get_current_project_name()
+
+    folder = ayon_api.get_folder_by_id(project, item["id"])
+    tasks = ayon_api.get_tasks_by_folder_path(project, folder["path"])
+    
+    for task in tasks:
+        if task["taskType"] == "Lookdev":
+            context_tools.change_current_context(folder, task)
+            break
+        elif task["taskType"] == "Lighting":
+            context_tools.change_current_context(folder, task)
+            break
+    else:
+        context_tools.change_current_context(folder, tasks[0])
+    
+    setup_project(root["scripts"], 
+                  root["scripts"]["ScriptNode"],
+                  tasks)
+
+def init_context_menu_items(root, menu, item):
     
     if item.get('children'):
         
@@ -96,32 +125,25 @@ def process_context_menu(menu, item):
             child_menu = IECore.MenuDefinition()  
             item_menu.append(child['name'], {"subMenu": child_menu})
             
-            process_context_menu(item_menu, child)
+            init_context_menu_items(root, item_menu, child)
     else:
-        menu.append(
-            item['name'],
-            {"command": lambda menu: set_folder_callback(menu, item['name'])}
-        )
+        menu.append(item['name'], {"command": lambda: update_context(root, item)})
 
-
-def init_context_menu(menu):
-    context_menu = IECore.MenuDefinition()
+def init_context_menu(root, menu):
     
-    for project in ayon_api.get_projects():
-        project_name = project['name']
-        project_menu = IECore.MenuDefinition()
-
-        context_menu.append(project_name, {"subMenu": project_menu})
-        hierarchy = ayon_api.get_folders_hierarchy(project_name)["hierarchy"]
-        
-        for item in hierarchy:
-            process_context_menu(project_menu, item)
+    hierarchy = ayon_api.get_folders_hierarchy(get_current_project_name())["hierarchy"]
     
-    return context_menu
+    for item in hierarchy:
+        init_context_menu_items(root, __context_menu, item)
+    
+    __context_menu.append("Set Task", {"subMenu": __set_tasks_menu})
+
+    return __context_menu
 
 def install_menu(application):
-    top_menu = GafferUI.ScriptWindow.menuDefinition(application.root())
+    root = application.root()
+    top_menu = GafferUI.ScriptWindow.menuDefinition(root)
     top_menu.append("AYON", {"subMenu": init_ayon_menu})
-    top_menu.append("Context", {"subMenu": init_context_menu})
+    top_menu.append("Context", {"subMenu": lambda: init_context_menu(root, top_menu)})
 
-    GafferSignal.post_task_changed().connect(update_context_menu_text, scoped = False)
+    GafferSignal.post_context_changed().connect(update_context_menu_text, scoped = False)

@@ -1,9 +1,12 @@
 from .pipeline import (
-    setup_project,
     GafferHost
     )
 
+from .project import (
+    setup_project
+    )
+
 __all__ = [
-    "setup_project", 
-    "GafferHost"
+    "GafferHost",
+    "setup_project"
     ]

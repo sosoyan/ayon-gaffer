@@ -9,7 +9,6 @@ from ayon_core.pipeline import (get_current_project_name,
                                 get_current_task_name)
 
 import IECore
-import Gaffer
 import GafferUI
 
 from PySide2 import QtCore
@@ -154,6 +153,7 @@ def init_context_menu(root):
     for folder in hierarchy:
         init_context_menu_items(root, context_menu, folder)
     
+    context_menu.append("contextDivider", {"divider": True})
     context_menu.append("Set Task", {"subMenu": set_tasks_menu})
     
     tasks = ayon_api.get_tasks_by_folder_path(project_name, folder_path)

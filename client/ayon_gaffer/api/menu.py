@@ -117,7 +117,7 @@ def update_context(root, folder, task=None):
             else:
                 context_tools.change_current_context(folder, tasks[0])
         else:
-            log.error(f"No tasks found for folder {folder['name']}")
+            log.error(f"No tasks found for folder '{folder['name']}'")
             return
     else:
         context_tools.change_current_context(folder, task)

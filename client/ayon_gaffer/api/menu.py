@@ -1,4 +1,7 @@
+from functools import partial
+
 import ayon_api
+from ayon_core.lib import Logger
 from ayon_core.tools.utils import host_tools
 from ayon_core.pipeline import context_tools
 from ayon_core.pipeline import (get_current_project_name,
@@ -15,8 +18,7 @@ from ayon_gaffer.api.project import setup_project
 from ayon_gaffer.api.signals import GafferSignal
 
 
-__context_menu = IECore.MenuDefinition()
-__set_tasks_menu = IECore.MenuDefinition()
+log = Logger.get_logger("ayon_gaffer.api.menu")
 
 def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
@@ -73,77 +75,100 @@ def init_ayon_menu(menu):
 
     return main_menu
 
-def update_context_menu_text(script, tasks):
+def update_context_menu_text(script):
+
+    project_name = get_current_project_name()
+    folder_path = get_current_folder_path()
+    task_name = get_current_task_name()
+
     script_window = GafferUI.ScriptWindow.acquire(script)
 
     if not script_window.visible():
-        QtCore.QTimer.singleShot(1000, lambda: update_context_menu_text(script, tasks))
+        QtCore.QTimer.singleShot(1000, lambda: update_context_menu_text(script))
         return
-    
+
     container = script_window.getChild()
     menu_bar = container[0]
     if not isinstance(menu_bar, GafferUI.MenuBar):
         menu_bar = menu_bar[0]
 
     action_list = menu_bar._qtWidget().actions()
-    menu_text = f"{get_current_project_name()}{get_current_folder_path()} | {get_current_task_name()}"
+    menu_text = f"{project_name}{folder_path} | {task_name}"
 
     action_list[-1].setText(menu_text)
     
-    #for task in tasks:
-    #    __set_tasks_menu.append(task["name"], {"command": lambda: context_tools.change_current_context(None, task)})
-    
-def update_context(root, item):
-    project = get_current_project_name()
+def update_context(root, folder, task=None):
+    project_name = get_current_project_name()
 
-    folder = ayon_api.get_folder_by_id(project, item["id"])
-    tasks = ayon_api.get_tasks_by_folder_path(project, folder["path"])
+    folder = ayon_api.get_folder_by_id(project_name, folder["id"])
     
-    for task in tasks:
-        if task["taskType"] == "Lookdev":
-            context_tools.change_current_context(folder, task)
-            break
-        elif task["taskType"] == "Lighting":
-            context_tools.change_current_context(folder, task)
-            break
+    if task is None:
+        tasks = ayon_api.get_tasks_by_folder_path(project_name, folder["path"])
+
+        if tasks:
+            # Try to set Lookdev or Lighting task, otherwise set the first existing
+            for task in tasks:
+                if task["taskType"] == "Lookdev":
+                    context_tools.change_current_context(folder, task)
+                    break
+                elif task["taskType"] == "Lighting":
+                    context_tools.change_current_context(folder, task)
+                    break
+            else:
+                context_tools.change_current_context(folder, tasks[0])
+        else:
+            log.error(f"No tasks found for folder {folder['name']}")
+            return
     else:
-        context_tools.change_current_context(folder, tasks[0])
+        context_tools.change_current_context(folder, task)
     
     setup_project(root["scripts"], 
-                  root["scripts"]["ScriptNode"],
-                  tasks)
+                  root["scripts"]["ScriptNode"])
 
-def init_context_menu_items(root, menu, item):
+def init_context_menu_items(root, context_menu, folder):
     
-    if item.get('children'):
+    if folder.get('children'):
         
-        item_menu = IECore.MenuDefinition()
-        menu.append(item['name'], {"subMenu": item_menu})
+        folder_menu = IECore.MenuDefinition()
+        context_menu.append(folder['name'], {"subMenu": folder_menu})
 
-        for child in item['children']:
+        for child_folder in folder['children']:
             
-            child_menu = IECore.MenuDefinition()  
-            item_menu.append(child['name'], {"subMenu": child_menu})
+            child_folder_menu = IECore.MenuDefinition()  
+            folder_menu.append(child_folder['name'], {"subMenu": child_folder_menu})
             
-            init_context_menu_items(root, item_menu, child)
+            init_context_menu_items(root, folder_menu, child_folder)
     else:
-        menu.append(item['name'], {"command": lambda: update_context(root, item)})
+        context_menu.append(folder['name'], {"command": lambda: update_context(root, folder)})
 
-def init_context_menu(root, menu):
+def init_context_menu(root):
     
-    hierarchy = ayon_api.get_folders_hierarchy(get_current_project_name())["hierarchy"]
-    
-    for item in hierarchy:
-        init_context_menu_items(root, __context_menu, item)
-    
-    __context_menu.append("Set Task", {"subMenu": __set_tasks_menu})
+    project_name = get_current_project_name()
+    folder_path = get_current_folder_path()
 
-    return __context_menu
+    context_menu = IECore.MenuDefinition()
+    set_tasks_menu = IECore.MenuDefinition()
+
+    hierarchy = ayon_api.get_folders_hierarchy(project_name)["hierarchy"]
+    
+    for folder in hierarchy:
+        init_context_menu_items(root, context_menu, folder)
+    
+    context_menu.append("Set Task", {"subMenu": set_tasks_menu})
+    
+    tasks = ayon_api.get_tasks_by_folder_path(project_name, folder_path)
+
+    current_folder = ayon_api.get_folder_by_path(project_name, folder_path)
+
+    for task in tasks:
+        set_tasks_menu.append(task['name'], {"command": partial(update_context, root, current_folder, task)})
+
+    return context_menu
 
 def install_menu(application):
     root = application.root()
     top_menu = GafferUI.ScriptWindow.menuDefinition(root)
     top_menu.append("AYON", {"subMenu": init_ayon_menu})
-    top_menu.append("Context", {"subMenu": lambda: init_context_menu(root, top_menu)})
+    top_menu.append("Context", {"subMenu": lambda: init_context_menu(root)})
 
     GafferSignal.post_context_changed().connect(update_context_menu_text, scoped = False)

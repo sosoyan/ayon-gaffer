@@ -11,7 +11,7 @@ log = Logger.get_logger("ayon_gaffer.startup.gui.setup")
 application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 
 def _install_ayon():
-    log.info("Installing ayon ...")
+    log.info("Installing Ayon ...")
     install_host(GafferHost(application))
     install_menu(application)
 

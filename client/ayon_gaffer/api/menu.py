@@ -84,7 +84,7 @@ def update_context_menu_text(script):
     script_window = GafferUI.ScriptWindow.acquire(script)
 
     if not script_window.visible():
-        QtCore.QTimer.singleShot(1000, lambda: update_context_menu_text(script))
+        QtCore.QTimer.singleShot(1000, partial(update_context_menu_text, script))
         return
 
     container = script_window.getChild()
@@ -139,7 +139,7 @@ def init_context_menu_items(root, context_menu, folder):
             
             init_context_menu_items(root, folder_menu, child_folder)
     else:
-        context_menu.append(folder['name'], {"command": lambda: update_context(root, folder)})
+        context_menu.append(folder['name'], {"command": partial(update_context, root, folder)})
 
 def init_context_menu(root):
     
@@ -169,6 +169,6 @@ def install_menu(application):
     root = application.root()
     top_menu = GafferUI.ScriptWindow.menuDefinition(root)
     top_menu.append("AYON", {"subMenu": init_ayon_menu})
-    top_menu.append("Context", {"subMenu": lambda: init_context_menu(root)})
+    top_menu.append("Context", {"subMenu": partial(init_context_menu, root)})
 
     GafferSignal.post_context_changed().connect(update_context_menu_text, scoped = False)

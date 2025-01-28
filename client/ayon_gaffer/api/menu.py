@@ -75,16 +75,16 @@ def init_ayon_menu(menu):
 
     return main_menu
 
-def update_context_menu_text(script):
+def update_context_menu_text(script_node):
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
-    script_window = GafferUI.ScriptWindow.acquire(script)
+    script_window = GafferUI.ScriptWindow.acquire(script_node)
 
     if not script_window.visible():
-        QtCore.QTimer.singleShot(1000, partial(update_context_menu_text, script))
+        QtCore.QTimer.singleShot(1000, partial(update_context_menu_text, script_node))
         return
 
     container = script_window.getChild()
@@ -127,19 +127,19 @@ def update_context(root, folder, task=None):
 
 def init_context_menu_items(root, context_menu, folder):
     
-    if folder.get('children'):
+    if folder.get("children"):
         
         folder_menu = IECore.MenuDefinition()
-        context_menu.append(folder['name'], {"subMenu": folder_menu})
+        context_menu.append(folder["name"], {"subMenu": folder_menu})
 
-        for child_folder in folder['children']:
+        for child_folder in folder["children"]:
             
             child_folder_menu = IECore.MenuDefinition()  
-            folder_menu.append(child_folder['name'], {"subMenu": child_folder_menu})
+            folder_menu.append(child_folder["name"], {"subMenu": child_folder_menu})
             
             init_context_menu_items(root, folder_menu, child_folder)
     else:
-        context_menu.append(folder['name'], {"command": partial(update_context, root, folder)})
+        context_menu.append(folder["name"], {"command": partial(update_context, root, folder)})
 
 def init_context_menu(root):
     

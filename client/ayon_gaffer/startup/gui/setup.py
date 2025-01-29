@@ -3,7 +3,6 @@ from ayon_core.pipeline import install_host
 
 from ayon_gaffer.api import GafferHost
 from ayon_gaffer.api.menu import install_menu
-from ayon_gaffer.api.project import setup_project
 
 
 log = Logger.get_logger(__name__)

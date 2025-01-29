@@ -18,7 +18,7 @@ from ayon_gaffer.api.project import setup_project
 from ayon_gaffer.api.signals import GafferSignal
 
 
-log = Logger.get_logger("ayon_gaffer.api.menu")
+log = Logger.get_logger(__name__)
 
 def get_main_window(menu):
     script_window = menu.ancestor(GafferUI.ScriptWindow)
@@ -117,11 +117,11 @@ def update_context(root, folder, task=None):
             else:
                 context_tools.change_current_context(folder, tasks[0])
         else:
-            log.error(f"No tasks found for folder '{folder['name']}'")
+            log.warning(f"No tasks found for folder '{folder['name']}', abort context change!")
             return
     else:
         context_tools.change_current_context(folder, task)
-    
+
     setup_project(root["scripts"], 
                   root["scripts"]["ScriptNode"])
 

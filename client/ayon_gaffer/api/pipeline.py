@@ -3,7 +3,7 @@ from ayon_core.lib import Logger
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
 
-log = Logger.get_logger("ayon_gaffer.api.pipeline")
+log = Logger.get_logger(__name__)
 
 class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     name = "gaffer"

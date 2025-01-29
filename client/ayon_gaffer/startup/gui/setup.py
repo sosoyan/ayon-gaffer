@@ -6,7 +6,7 @@ from ayon_gaffer.api.menu import install_menu
 from ayon_gaffer.api.project import setup_project
 
 
-log = Logger.get_logger("ayon_gaffer.startup.gui.setup")
+log = Logger.get_logger(__name__)
 
 application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 

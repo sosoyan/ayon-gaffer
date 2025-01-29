@@ -56,17 +56,8 @@ def init_ayon_menu(menu):
             parent=get_main_window(menu))}
     )
 
-    main_menu.append(f"ActionsDivider", {"divider": True})
-    main_menu.append(
-        f"Set frame range...",
-        {"command": lambda menu: set_frame_range_callback(menu)}
-    )
-    main_menu.append(
-        f"Update context variables",
-        {"command": lambda menu: update_root_context_variables_callback(menu)}
-    )
-
     main_menu.append(f"WorkFilesDivider", {"divider": True})
+    
     main_menu.append(
         f"Work Files...",
         {"command": lambda menu: host_tools.show_workfiles(

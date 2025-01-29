@@ -1,9 +1,20 @@
+import os
+
 import pyblish.api
 from ayon_core.lib import Logger
+from ayon_core.pipeline import (register_creator_plugin_path,
+                                register_loader_plugin_path)
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
+
+from ayon_gaffer import GAFFER_HOST_DIR
 
 
 log = Logger.get_logger(__name__)
+
+PLUGINS_DIR = os.path.join(GAFFER_HOST_DIR, "plugins")
+CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
+LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
+PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
 
 class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     name = "gaffer"
@@ -23,7 +34,8 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def open_workfile(self, filepath):
         return ""
     
-    def save_workfile(self, dst_path=None):
+    def save_workfile(self, filepath=None):
+        print(filepath)
         return ""
 
     def install(self):

@@ -32,13 +32,6 @@ def set_script_variables(script_node, attrib):
             plug_type = Gaffer.StringPlug
             default_value = attrib_value
 
-        elif isinstance(attrib_value, (tuple, list)):
-        
-            if len(attrib_value) == 2:
-                plug_type = Gaffer.V2iPlug
-                default_value = imath.V2i(0, 0)
-                attrib_value = imath.V2i(attrib_value[0], attrib_value[1])
-
         elif attrib_value is None:
             log.warning(f"{attrib_name} value is None skipping!")
             continue

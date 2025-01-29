@@ -21,10 +21,28 @@ from ayon_gaffer.api.signals import GafferSignal
 log = Logger.get_logger(__name__)
 
 def get_main_window(menu):
+    """
+    Retrieves the main window associated with the given menu.
+
+    Args:
+        menu (GafferUI.Menu): The menu from which to retrieve the main window.
+
+    Returns:
+        QWidget: The main window's Qt widget.
+    """
     script_window = menu.ancestor(GafferUI.ScriptWindow)
     return script_window._qtWidget()  
 
 def init_ayon_menu(menu):
+    """
+    Initializes the Ayon menu with various options and commands.
+
+    Args:
+        menu: The menu object to which the Ayon menu items will be added.
+
+    Returns:
+        IECore.MenuDefinition: The constructed menu definition with all the Ayon menu items.
+    """
     main_menu = IECore.MenuDefinition()
 
     main_menu.append(
@@ -57,7 +75,7 @@ def init_ayon_menu(menu):
     )
 
     main_menu.append(f"WorkFilesDivider", {"divider": True})
-    
+
     main_menu.append(
         f"Work Files...",
         {"command": lambda menu: host_tools.show_workfiles(
@@ -67,6 +85,18 @@ def init_ayon_menu(menu):
     return main_menu
 
 def update_context_menu_text(script_node):
+    """
+    Updates the text of the context menu in the Gaffer UI with the current project name,
+    folder path, and task name.
+
+    Args:
+        script_node (Gaffer.ScriptNode): The script node for which the context menu text
+                                         needs to be updated.
+
+    The function retrieves the current project name, folder path, and task name, and then
+    updates the text of the last action in the menu bar of the script window. If the script
+    window is not visible, it sets a timer to retry the update after 1 second.
+    """
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
@@ -84,11 +114,31 @@ def update_context_menu_text(script_node):
         menu_bar = menu_bar[0]
 
     action_list = menu_bar._qtWidget().actions()
-    menu_text = f"{project_name}{folder_path} | {task_name}"
 
-    action_list[-1].setText(menu_text)
+    context_menu = None
+    for idx, action in enumerate(action_list):
+        if action.text() == "AYON":
+            context_menu = action_list[idx+1]
+            
+    if context_menu is not None:
+        menu_text = f"{project_name}{folder_path} | {task_name}"
+        context_menu.setText(menu_text)
     
 def update_context(root, folder, task=None):
+    """
+    Update the current context based on the provided folder and task.
+    This function updates the context by setting the current folder and task.
+    If no task is provided, it attempts to find tasks associated with the folder
+    and sets the context to either a "Lookdev" or "Lighting" task if available,
+    otherwise it sets the context to the first available task. If no tasks are found,
+    it logs a warning and aborts the context change.
+    Args:
+        root (dict): The root dictionary containing script information.
+        folder (dict): The folder dictionary containing folder details.
+        task (dict, optional): The task dictionary containing task details. Defaults to None.
+    Returns:
+        None
+    """
     project_name = get_current_project_name()
 
     folder = ayon_api.get_folder_by_id(project_name, folder["id"])
@@ -97,7 +147,6 @@ def update_context(root, folder, task=None):
         tasks = ayon_api.get_tasks_by_folder_path(project_name, folder["path"])
 
         if tasks:
-            # Try to set Lookdev or Lighting task, otherwise set the first existing
             for task in tasks:
                 if task["taskType"] == "Lookdev":
                     context_tools.change_current_context(folder, task)
@@ -117,6 +166,17 @@ def update_context(root, folder, task=None):
                   root["scripts"]["ScriptNode"])
 
 def init_context_menu_items(root, context_menu, folder):
+    """
+    Initializes context menu items recursively based on the folder structure.
+    Args:
+        root (object): The root object that will be passed to the update_context function.
+        context_menu (IECore.MenuDefinition): The context menu to which items will be added.
+        folder (dict): A dictionary representing the folder structure. It should contain
+                       a "name" key for the folder name and optionally a "children" key
+                       which is a list of child folders.
+    Returns:
+        None
+    """
     
     if folder.get("children"):
         
@@ -133,6 +193,16 @@ def init_context_menu_items(root, context_menu, folder):
         context_menu.append(folder["name"], {"command": partial(update_context, root, folder)})
 
 def init_context_menu(root):
+    """
+    Initializes the context menu for the given root element.
+    This function creates a context menu based on the current project and folder path.
+    It populates the menu with items representing the folder hierarchy and tasks available
+    in the current folder. The context menu includes a divider and a submenu for setting tasks.
+    Args:
+        root: The root element to which the context menu will be attached.
+    Returns:
+        IECore.MenuDefinition: The constructed context menu.
+    """
     
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
@@ -158,6 +228,18 @@ def init_context_menu(root):
     return context_menu
 
 def install_menu(application):
+    """
+    Installs custom menus into the Gaffer application.
+
+    This function adds two custom menus, "AYON" and "Context", to the top menu of the Gaffer application.
+    It also connects a signal to update the context menu text when the context changes.
+
+    Args:
+        application (Gaffer.Application): The Gaffer application instance.
+
+    Returns:
+        None
+    """
     root = application.root()
     top_menu = GafferUI.ScriptWindow.menuDefinition(root)
     top_menu.append("AYON", {"subMenu": init_ayon_menu})

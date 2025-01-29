@@ -71,8 +71,7 @@ def set_script_variables(script_node, attr):
             log.warning(f"{attrib_name} value is None skipping!")
             continue
         else:
-            log.error(f"Unknown type of 
-                      {type({attrib_value})} for {attrib_name} - {attrib_value} skipping!")
+            log.error(f"Unknown type of {type({attrib_value})} for {attrib_name} - {attrib_value} skipping!")
             continue
 
         if not attrib_name.startswith("ayon:"):

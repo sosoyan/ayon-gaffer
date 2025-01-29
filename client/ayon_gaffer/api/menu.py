@@ -88,16 +88,14 @@ def update_context_menu_text(script_node):
     """
     Updates the text of the context menu in the Gaffer UI with the current project name,
     folder path, and task name.
-
     Args:
         script_node (Gaffer.ScriptNode): The script node for which the context menu text
                                          needs to be updated.
-
     The function retrieves the current project name, folder path, and task name, and then
-    updates the text of the last action in the menu bar of the script window. If the script
-    window is not visible, it sets a timer to retry the update after 1 second.
+    updates the context menu text in the Gaffer UI. If the script window is not visible,
+    it sets a timer to retry after 1 second. The function assumes that the context menu
+    item to be updated is labeled "AYON".
     """
-
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
@@ -115,14 +113,10 @@ def update_context_menu_text(script_node):
 
     action_list = menu_bar._qtWidget().actions()
 
-    context_menu = None
     for idx, action in enumerate(action_list):
         if action.text() == "AYON":
             context_menu = action_list[idx+1]
-            
-    if context_menu is not None:
-        menu_text = f"{project_name}{folder_path} | {task_name}"
-        context_menu.setText(menu_text)
+            context_menu.setText(f"{project_name}{folder_path} | {task_name}")
     
 def update_context(root, folder, task=None):
     """

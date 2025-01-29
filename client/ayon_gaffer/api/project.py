@@ -6,7 +6,6 @@ from ayon_core.pipeline import (get_current_project_name,
 
 from ayon_gaffer.api.signals import GafferSignal
 
-import imath
 import Gaffer
 import GafferUI
 

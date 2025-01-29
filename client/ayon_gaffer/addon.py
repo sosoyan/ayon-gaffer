@@ -19,12 +19,12 @@ class GafferAddon(AYONAddon, IHostAddon):
         """
           Add requirements to GAFFER_EXTENSION_PATHS
         """
-        gep_key = "GAFFER_EXTENSION_PATHS"
+        gaf_ext_paths = "GAFFER_EXTENSION_PATHS"
         
-        if gep_key in env:
-            env[gep_key] += os.pathsep + GAFFER_HOST_DIR
+        if gaf_ext_paths in env:
+            env[gaf_ext_paths] += os.pathsep + GAFFER_HOST_DIR
         else:
-            env[gep_key] = GAFFER_HOST_DIR
+            env[gaf_ext_paths] = GAFFER_HOST_DIR
 
     def get_launch_hook_paths(self, app):
         if app.host_name == self.host_name:

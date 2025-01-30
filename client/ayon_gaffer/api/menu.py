@@ -14,8 +14,7 @@ import GafferUI
 
 from PySide2 import QtCore
 
-from ayon_gaffer.api.project import setup_project
-from ayon_gaffer.api.signals import GafferSignal
+from ayon_gaffer.api.lib import (GafferSignal, setup_project)
 
 
 log = Logger.get_logger(__name__)
@@ -171,7 +170,7 @@ def init_context_menu_items(root, context_menu, folder):
     Returns:
         None
     """
-    
+
     if folder.get("children"):
         
         folder_menu = IECore.MenuDefinition()

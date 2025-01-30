@@ -1,10 +1,10 @@
+import os
+
 import ayon_api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path,
                                 get_current_task_name)
-
-from ayon_gaffer.api.signals import GafferSignal
 
 import Gaffer
 import GafferUI
@@ -12,16 +12,78 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
+class GafferSignal(object):
+    """
+    A class to handle Gaffer signals for context changes.
+    This class provides two class methods to access pre and post context change signals.
+    Attributes:
+        __pre_context_changed (Gaffer.Signal1): A signal that is emitted before the context changes.
+        __post_context_changed (Gaffer.Signal1): A signal that is emitted after the context changes.
+    Methods:
+        pre_context_changed():
+            Returns the signal that is emitted before the context changes.
+        post_context_changed():
+            Returns the signal that is emitted after the context changes.
+    """
+    __pre_context_changed = Gaffer.Signal1()
+    __post_context_changed = Gaffer.Signal1()
+
+    @classmethod
+    def pre_context_changed(cls):
+        """
+        Method to access the pre-context changed signal.
+
+        Returns:
+            Signal: The pre-context changed signal.
+        """
+        return cls.__pre_context_changed
+    
+    @classmethod
+    def post_context_changed(cls):
+        """
+        Method to access the post-context changed signal.
+
+        Returns:
+            Signal: The post-context changed signal.
+        """
+        return cls.__post_context_changed
+
+class GafferScript(object):
+
+    __node = None
+    __container = None
+    __instance = None
+
+    @property
+    def node(self):
+        return self.__node
+    
+    @node.setter
+    def node(self, value):
+        self.__node = value
+
+    @property
+    def container(self):
+        return self.__container
+    
+    @container.setter
+    def container(self, value):
+        self.__container = value
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance
+    
 def set_script_settings(script_node, attr):
         """
         Set various settings on a Gaffer script node based on provided attributes.
         Args:
             script_node (Gaffer.ScriptNode): The script node to configure.
-            attr (dict): A dictionary containing the following keys:
+            attr (dict): A dictionary containing the following key - value pairs:
         Returns:
             None
         """
-        
         script_node["frameRange"]["start"].setValue(attr["frameStart"])
         script_node["frameRange"]["end"].setValue(attr["frameEnd"])
         script_node["framesPerSecond"].setValue(attr["fps"])
@@ -88,7 +150,7 @@ def set_script_variables(script_node, attr):
 
         script_vars[attrib_name]["value"].setValue(attrib_value)    
 
-def setup_project(_, script_node):
+def setup_project(script_container, script_node):
     """
     Sets up global veraiables and projects settings
     for the current Ayon context - project/folder/task
@@ -104,8 +166,12 @@ def setup_project(_, script_node):
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
-    script_node["variables"]["projectRootDirectory"]["value"].setValue(
-        "${AYON_WORKDIR}/gaffer/projects/${project:name}")
+    work_dir = os.environ.get("AYON_WORKDIR")
+    proj_dir = os.path.join(work_dir, "gaffer/projects/default/scripts").replace("\\", "/")
+
+    script_node["variables"]["projectRootDirectory"]["value"].setValue(proj_dir)
+
+    os.environ["AYON_WORKDIR"] = proj_dir
 
     log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
 
@@ -125,6 +191,8 @@ def setup_project(_, script_node):
 
         set_script_settings(script_node, task_atrib)
         set_script_variables(script_node, task_atrib)
-        
+    
+    GafferScript.node = script_node
+    GafferScript.container = script_container
+    
     GafferSignal.post_context_changed()(script_node)
-

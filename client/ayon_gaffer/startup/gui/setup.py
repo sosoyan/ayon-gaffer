@@ -11,7 +11,7 @@ application = application # noqa
 
 def _install_ayon():
     """
-    Installs the Ayon application by setting up the Gaffer host and menu.
+    Installs the Ayon host and menu
     """
     log.info("Installing Ayon ...")
     install_host(GafferHost(application))

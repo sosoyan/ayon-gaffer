@@ -117,7 +117,7 @@ def set_script_variables(script_node, attr):
     for attrib_name, attrib_value in sorted(attr.items(), reverse=True):
         
         if attrib_value is not None:
-            
+
             if isinstance(attrib_value, int):
                 plug_type = Gaffer.IntPlug
                 default_value = attrib_value
@@ -148,7 +148,7 @@ def set_script_variables(script_node, attr):
 
             script_vars[attrib_name]["value"].setValue(attrib_value)    
 
-def setup_project(script_container, script_node):
+def setup_project(script_container=None, script_node=None):
     """
     Sets up global veraiables and projects settings
     for the current Ayon context - project/folder/task
@@ -160,21 +160,20 @@ def setup_project(script_container, script_node):
     Returns:
         None
     """
+    if (script_container is not None) and (script_node is not None):
+        GafferScript.node = script_node
+        GafferScript.container = script_container
+
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
-    GafferSignal.pre_context_changed()(script_node)
+    GafferSignal.pre_context_changed()(GafferScript.node)
 
     work_dir = os.environ.get("AYON_WORKDIR").replace("\\", "/")
-    script_node["variables"]["projectRootDirectory"]["value"].setValue(work_dir)
+    GafferScript.node["variables"]["projectRootDirectory"]["value"].setValue(work_dir)
 
-    log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
-
-    
-    task = ayon_api.get_task_by_folder_path(project_name,
-                                            folder_path,
-                                            task_name)
+    task = ayon_api.get_task_by_folder_path(project_name, folder_path, task_name)
     
     task_atrib = task.get("attrib")
 
@@ -184,10 +183,9 @@ def setup_project(script_container, script_node):
         task_atrib["folderPath"] = folder_path
         task_atrib["taskName"] = task_name
 
-        set_script_settings(script_node, task_atrib)
-        set_script_variables(script_node, task_atrib)
+        set_script_settings(GafferScript.node, task_atrib)
+        set_script_variables(GafferScript.node, task_atrib)
     
-    GafferScript.node = script_node
-    GafferScript.container = script_container
+    log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
     
-    GafferSignal.post_context_changed()(script_node)
+    GafferSignal.post_context_changed()(GafferScript.node)

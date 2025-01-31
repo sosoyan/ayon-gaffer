@@ -113,8 +113,7 @@ def update_context(root, folder, task=None):
     else:
         context_tools.change_current_context(folder, task)
 
-    setup_project(root["scripts"], 
-                  root["scripts"]["ScriptNode"])
+    setup_project()
 
 def init_context_menu_items(root, context_menu, folder):
     """

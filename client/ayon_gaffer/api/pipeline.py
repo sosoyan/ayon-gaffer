@@ -45,7 +45,9 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
-        register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
+
+    def close_window(self, script_window):
+        script_window.close()
 
     def has_unsaved_changes(self):
         return GafferScript.node["unsavedChanges"].getValue()
@@ -81,7 +83,7 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         GafferUI.FileMenu.addRecentFile(self.application, dst_path)
         
-        setup_project(GafferScript.container, GafferScript.node)
+        setup_project()
     
     def update_context_data(self, data, changes):
         data_str = json.dumps(data)

@@ -4,14 +4,15 @@ import json
 import pyblish.api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (register_creator_plugin_path,
-                                register_loader_plugin_path)
+                                register_loader_plugin_path,
+                                register_workfile_build_plugin_path)
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
 from ayon_gaffer import GAFFER_HOST_DIR
 from ayon_gaffer.api.lib import (GafferScript, setup_project)
 
 import Gaffer
-
+import GafferUI.FileMenu
 
 log = Logger.get_logger(__name__)
 
@@ -19,6 +20,7 @@ PLUGINS_DIR = os.path.join(GAFFER_HOST_DIR, "plugins")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
+WORKFILE_BUILD_PATH = os.path.join(PLUGINS_DIR, "workfile_build")
 
 # A prefix used for storing JSON blobs in string plugs
 JSON_PREFIX = "JSON:::"
@@ -37,6 +39,14 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         self.application = application
         self.application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
 
+    def install(self):
+        pyblish.api.register_host("gaffer")
+        pyblish.api.register_plugin_path(PUBLISH_PATH)
+        
+        register_loader_plugin_path(LOAD_PATH)
+        register_creator_plugin_path(CREATE_PATH)
+        register_workfile_build_plugin_path(WORKFILE_BUILD_PATH)
+
     def has_unsaved_changes(self):
         return GafferScript.node["unsavedChanges"].getValue()
 
@@ -53,37 +63,25 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))
         
-        GafferScript.node["fileName"].setValue(filepath)
-        GafferScript.node.load()
+        script_window = GafferUI.ScriptWindow.acquire(GafferScript.node)
 
-        #self._on_scene_new(script.ancestor(Gaffer.ScriptContainer), script)
-        #return filepath
-    
+        GafferUI.FileMenu.addScript(self.application.root(), filepath)
+        GafferUI.EventLoop.addIdleCallback(lambda: self.close_window(script_window))
+
     def save_workfile(self, dst_path=None):
-            filename = os.path.basename(dst_path)
 
-            # if not os.path.exists(dst_path):
-            #     os.makedirs(dst_path)
+        if not dst_path:
+            dst_path = self.get_current_workfile()
 
-            # dst_path = os.path.join(dst_path, filename)
+        dst_path = dst_path.replace("\\", "/")
 
-            if not dst_path:
-                dst_path = self.get_current_workfile()
+        GafferScript.node.serialiseToFile(dst_path)
+        GafferScript.node["fileName"].setValue(dst_path)
+        GafferScript.node["unsavedChanges"].setValue(False)
 
-            dst_path = dst_path.replace("\\", "/")
-
-            GafferScript.node.serialiseToFile(dst_path)
-            GafferScript.node["fileName"].setValue(dst_path)
-            GafferScript.node["unsavedChanges"].setValue(False)
-
-            #application = script.ancestor(Gaffer.ApplicationRoot)
-            #if application:
-            #    import GafferUI.FileMenu
-            #    GafferUI.FileMenu.addRecentFile(application, dst_path)
-
-            #self.update_project_root_directory(script)
-
-            return dst_path
+        GafferUI.FileMenu.addRecentFile(self.application, dst_path)
+        
+        setup_project(GafferScript.container, GafferScript.node)
     
     def update_context_data(self, data, changes):
         data_str = json.dumps(data)
@@ -106,13 +104,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         print(script_dir_path)
         return script_dir_path
-
-    def install(self):
-        pyblish.api.register_host("gaffer")
-        pyblish.api.register_plugin_path(PUBLISH_PATH)
-        
-        register_loader_plugin_path(LOAD_PATH)
-        register_creator_plugin_path(CREATE_PATH)
         
 def imprint_container(node: Gaffer.Node,
                       name: str,

@@ -116,39 +116,37 @@ def set_script_variables(script_node, attr):
         
     for attrib_name, attrib_value in sorted(attr.items(), reverse=True):
         
-        if isinstance(attrib_value, int):
-            plug_type = Gaffer.IntPlug
-            default_value = attrib_value
-        
-        elif isinstance(attrib_value, float):
-            plug_type = Gaffer.FloatPlug
-            default_value = attrib_value
-        
-        elif isinstance(attrib_value, str):
-            plug_type = Gaffer.StringPlug
-            default_value = attrib_value
+        if attrib_value is not None:
+            
+            if isinstance(attrib_value, int):
+                plug_type = Gaffer.IntPlug
+                default_value = attrib_value
+            
+            elif isinstance(attrib_value, float):
+                plug_type = Gaffer.FloatPlug
+                default_value = attrib_value
+            
+            elif isinstance(attrib_value, str):
+                plug_type = Gaffer.StringPlug
+                default_value = attrib_value
+            else:
+                log.error(f"Unknown type of {type({attrib_value})} for {attrib_name} - {attrib_value} skipping!")
+                continue
 
-        elif attrib_value is None:
-            log.warning(f"{attrib_name} value is None skipping!")
-            continue
-        else:
-            log.error(f"Unknown type of {type({attrib_value})} for {attrib_name} - {attrib_value} skipping!")
-            continue
-
-        if not attrib_name.startswith("ayon:"):
-            attrib_name = f"ayon:{attrib_name}"
-        
-        if attrib_name not in exists_vars:
-            script_vars.addChild(
-                Gaffer.NameValuePlug(
-                    attrib_name,
-                    plug_type(
+            if not attrib_name.startswith("ayon:"):
+                attrib_name = f"ayon:{attrib_name}"
+            
+            if attrib_name not in exists_vars:
+                script_vars.addChild(
+                    Gaffer.NameValuePlug(
                         attrib_name,
-                        defaultValue=default_value,
-                        flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic),
-                    attrib_name))
+                        plug_type(
+                            attrib_name,
+                            defaultValue=default_value,
+                            flags=Gaffer.Plug.Flags.Default | Gaffer.Plug.Flags.Dynamic),
+                        attrib_name))
 
-        script_vars[attrib_name]["value"].setValue(attrib_value)    
+            script_vars[attrib_name]["value"].setValue(attrib_value)    
 
 def setup_project(script_container, script_node):
     """
@@ -166,16 +164,13 @@ def setup_project(script_container, script_node):
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
-    work_dir = os.environ.get("AYON_WORKDIR")
-    proj_dir = os.path.join(work_dir, "gaffer/projects/default/scripts").replace("\\", "/")
+    GafferSignal.pre_context_changed()(script_node)
 
-    script_node["variables"]["projectRootDirectory"]["value"].setValue(proj_dir)
-
-    os.environ["AYON_WORKDIR"] = proj_dir
+    work_dir = os.environ.get("AYON_WORKDIR").replace("\\", "/")
+    script_node["variables"]["projectRootDirectory"]["value"].setValue(work_dir)
 
     log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
 
-    GafferSignal.pre_context_changed()(script_node)
     
     task = ayon_api.get_task_by_folder_path(project_name,
                                             folder_path,

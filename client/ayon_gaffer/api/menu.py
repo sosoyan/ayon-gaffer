@@ -19,19 +19,6 @@ from ayon_gaffer.api.lib import (GafferSignal, setup_project)
 
 log = Logger.get_logger(__name__)
 
-def get_main_window(menu):
-    """
-    Retrieves the main window associated with the given menu.
-
-    Args:
-        menu (GafferUI.Menu): The menu from which to retrieve the main window.
-
-    Returns:
-        QWidget: The main window's Qt widget.
-    """
-    script_window = menu.ancestor(GafferUI.ScriptWindow)
-    return script_window._qtWidget()  
-
 def init_ayon_menu(menu):
     """
     Initializes the Ayon menu with various options and commands.
@@ -43,43 +30,14 @@ def init_ayon_menu(menu):
         IECore.MenuDefinition: The constructed menu definition with all the Ayon menu items.
     """
     main_menu = IECore.MenuDefinition()
-
-    main_menu.append(
-        f"Create...",
-        {"command": lambda menu: host_tools.show_publisher(
-            parent=get_main_window(menu),
-            tab="create")}
-        )
-    main_menu.append(
-        f"Load...",
-        {"command": lambda menu: host_tools.show_loader(
-            parent=get_main_window(menu),
-            use_context=True)}
-    )
-    main_menu.append(
-        f"Publish...",
-        {"command": lambda menu: host_tools.show_publisher(
-            parent=get_main_window(menu),
-            tab="publish")}
-    )
-    main_menu.append(
-        f"Manage...",
-        {"command": lambda menu: host_tools.show_scene_inventory(
-            parent=get_main_window(menu))}
-    )
-    main_menu.append(
-        f"Library...",
-        {"command": lambda menu: host_tools.show_library_loader(
-            parent=get_main_window(menu))}
-    )
-
-    main_menu.append(f"WorkFilesDivider", {"divider": True})
-
-    main_menu.append(
-        f"Work Files...",
-        {"command": lambda menu: host_tools.show_workfiles(
-            parent=get_main_window(menu))}
-    )
+    
+    main_menu.append("Create...", {"command": lambda: host_tools.show_publisher(tab="create")})
+    main_menu.append("Load...", {"command": lambda: host_tools.show_loader(use_context=True)})
+    main_menu.append("Publish...", {"command": lambda: host_tools.show_publisher(tab="publish")})
+    main_menu.append("Manage...", {"command": host_tools.show_scene_inventory})
+    main_menu.append("Library...", {"command": host_tools.show_library_loader})
+    main_menu.append("WorkFilesDivider", {"divider": True})
+    main_menu.append("Work Files...", {"command": host_tools.show_workfiles})
 
     return main_menu
 

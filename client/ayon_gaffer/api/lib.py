@@ -1,5 +1,3 @@
-import os
-
 import ayon_api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (get_current_project_name,

@@ -68,7 +68,7 @@ class GafferScript(object):
 
 def set_script_settings(script_node, attr):
         """
-        Set various settings on a Gaffer script 
+        Set various settings on a Gaffer script
         node based on provided attributes.
         """
         script_node["frameRange"]["start"].setValue(attr["frameStart"])
@@ -89,7 +89,7 @@ def set_script_settings(script_node, attr):
 
 def set_script_variables(script_node, attr):
     """
-    Sets script variables on the given script 
+    Sets script variables on the given script
     node based on the provided attributes.
     """
     script_vars = script_node["variables"]

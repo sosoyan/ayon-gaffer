@@ -32,7 +32,7 @@ def init_ayon_menu(menu):
     main_menu = IECore.MenuDefinition()
 
     main_menu.append(
-        "Create...", {"command": 
+        "Create...", {"command":
                       lambda: host_tools.show_publisher(tab="create")})
     main_menu.append(
         "Load...", {"command":
@@ -41,7 +41,7 @@ def init_ayon_menu(menu):
         "Publish...", {
             "command": lambda: host_tools.show_publisher(tab="publish")})
     main_menu.append(
-        "Manage...", {"command": 
+        "Manage...", {"command":
                       host_tools.show_scene_inventory})
     main_menu.append(
         "Library...", {
@@ -163,7 +163,7 @@ def init_context_menu(root):
 
     for task in tasks:
         set_tasks_menu.append(
-            task['name'], {"command": 
+            task['name'], {"command":
                            partial(update_context,
                                    root,
                                    current_folder,

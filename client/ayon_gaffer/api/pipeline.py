@@ -33,26 +33,19 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def __init__(self, application):
         """
         Initialize the GafferHost with the given application.
-
-        Args:
-            application: The application instance to be used by the GafferHost.
-
-        Sets up a connection to the childAddedSignal of the "scripts" node in the application's root,
-        which triggers the setup_project function when a child is added.
         """
-
         super(GafferHost, self).__init__()
         self.application = application
-        self.application.root()["scripts"].childAddedSignal().connect(setup_project, scoped = False)
+        self.application.root()["scripts"].childAddedSignal().connect(
+            setup_project, scoped = False)
 
     def install(self):
         """
         Installs the necessary plugins and registers the host for the pipeline.
         """
-
         pyblish.api.register_host("gaffer")
         pyblish.api.register_plugin_path(PUBLISH_PATH)
-        
+
         register_loader_plugin_path(LOAD_PATH)
         register_creator_plugin_path(CREATE_PATH)
 
@@ -70,7 +63,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         Returns:
             bool: True if there are unsaved changes, False otherwise.
         """
-
         return GafferScript.node["unsavedChanges"].getValue()
 
     def get_current_workfile(self):
@@ -80,7 +72,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         Returns:
             str: The name of the current workfile.
         """
-
         return GafferScript.node["fileName"].getValue()
 
     def get_workfile_extensions(self):
@@ -90,7 +81,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         Returns:
             list: A list containing the workfile extensions as strings.
         """
-
         return [".gfr"]
 
     def open_workfile(self, filepath):
@@ -104,11 +94,12 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))
-        
+
         script_window = GafferUI.ScriptWindow.acquire(GafferScript.node)
 
         GafferUI.FileMenu.addScript(self.application.root(), filepath)
-        GafferUI.EventLoop.addIdleCallback(lambda: self.close_window(script_window))
+        GafferUI.EventLoop.addIdleCallback(lambda: self.close_window(
+            script_window))
 
     def save_workfile(self, dst_path=None):
         """
@@ -127,15 +118,15 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         GafferScript.node["unsavedChanges"].setValue(False)
 
         GafferUI.FileMenu.addRecentFile(self.application, dst_path)
-        
+
         setup_project()
-    
+
     def update_context_data(self, data, changes):
         """
-        Updates the context data by converting the given data to a JSON string and 
-        setting it to a dynamic StringPlug in the user plug of the Gaffer script.
+        Updates the context data by converting the given data to a
+        JSON string and setting it to a dynamic StringPlug in the user
+        plug of the Gaffer script.
         """
-
         data_str = json.dumps(data)
         self.user_plug = GafferScript.node["user"]
         self.user_plug[self.ayon_context] = Gaffer.StringPlug(
@@ -152,5 +143,5 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         if self.ayon_context in self.user_plug:
             data_str = self.user_plug[self.ayon_context].getValue()
             return json.loads(data_str)
-        
+
         return {}

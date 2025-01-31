@@ -4,8 +4,7 @@ import json
 import pyblish.api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (register_creator_plugin_path,
-                                register_loader_plugin_path,
-                                register_workfile_build_plugin_path)
+                                register_loader_plugin_path)
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
 from ayon_gaffer import GAFFER_HOST_DIR

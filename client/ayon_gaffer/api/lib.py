@@ -40,7 +40,6 @@ class GafferSignal(object):
         return cls.__post_context_changed
 
 class GafferScript(object):
-
     """
     GafferScript is a singleton class that manages a node and a container.
     """

@@ -185,7 +185,5 @@ def setup_project(script_container=None, script_node=None):
 
         set_script_settings(GafferScript.node, task_atrib)
         set_script_variables(GafferScript.node, task_atrib)
-    
-    log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
-    
+        
     GafferSignal.post_context_changed()(GafferScript.node)

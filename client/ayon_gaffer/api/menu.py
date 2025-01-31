@@ -112,6 +112,11 @@ def update_context(root, folder, task=None):
             return
     else:
         context_tools.change_current_context(folder, task)
+    
+    folder_path = get_current_folder_path()
+    task_name = get_current_task_name()
+
+    log.info(f"Ayon context has been set to {project_name}{folder_path} | {task_name}")
 
     setup_project()
 

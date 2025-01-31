@@ -41,6 +41,9 @@ class GafferSignal(object):
 
 class GafferScript(object):
 
+    """
+    GafferScript is a singleton class that manages a node and a container.
+    """
     __node = None
     __container = None
     __instance = None
@@ -135,13 +138,6 @@ def setup_project(script_container=None, script_node=None):
     """
     Sets up global veraiables and projects settings
     for the current Ayon context - project/folder/task
-
-    Args:
-        _ (Any): Unused argument.
-        script_node (Gaffer.ScriptNode): The script node to configure.
-
-    Returns:
-        None
     """
     if (script_container is not None) and (script_node is not None):
         GafferScript.node = script_node
@@ -153,9 +149,8 @@ def setup_project(script_container=None, script_node=None):
 
     GafferSignal.pre_context_changed()(GafferScript.node)
 
-    work_dir = os.environ.get("AYON_WORKDIR").replace("\\", "/")
     GafferScript.node["variables"]["projectRootDirectory"]["value"].setValue(
-        work_dir)
+        "${AYON_WORKDIR}")
 
     task = ayon_api.get_task_by_folder_path(project_name,
                                             folder_path,

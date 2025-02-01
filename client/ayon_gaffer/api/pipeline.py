@@ -1,6 +1,7 @@
 import os
 import json
 
+import ayon_api
 import pyblish.api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (register_creator_plugin_path,
@@ -26,7 +27,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     GafferHost class that integrates with the Gaffer application and provides
     functionalities for workfile management, loading, and publishing.
     """
-
     name = "gaffer"
     ayon_context = "ayon_context"
 
@@ -91,7 +91,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         Raises:
             RuntimeError: If the specified file does not exist.
         """
-
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))
 
@@ -107,7 +106,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         If no destination path is provided, the current workfile path is used.
         The destination path is normalized to use forward slashes.
         """
-
         if not dst_path:
             dst_path = self.get_current_workfile()
 
@@ -118,8 +116,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         GafferScript.node["unsavedChanges"].setValue(False)
 
         GafferUI.FileMenu.addRecentFile(self.application, dst_path)
-
-        setup_project()
 
     def update_context_data(self, data, changes):
         """
@@ -138,7 +134,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         """
         Retrieves context data from the user plug in the Gaffer script node.
         """
-
         self.user_plug = GafferScript.node["user"]
         if self.ayon_context in self.user_plug:
             data_str = self.user_plug[self.ayon_context].getValue()

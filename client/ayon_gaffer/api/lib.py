@@ -11,6 +11,37 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
+def retrive_script_context():
+    """
+    Tries to retrive the saved script context by setting project, folder, and
+    task from the Gaffer script variables and updating the context.
+    """
+    script_vars = GafferScript.node["variables"]
+
+    project_name = "ayon:projectName"
+    folder_path = "ayon:folderPath"
+    task_name = "ayon:taskName"
+
+    if (project_name in script_vars.keys() and
+        folder_path in script_vars.keys() and
+        task_name in script_vars.keys()):
+
+        project_name = script_vars[project_name]["value"].getValue()
+        folder_path = script_vars[folder_path]["value"].getValue()
+        task_name = script_vars[task_name]["value"].getValue()
+
+        folder = ayon_api.get_folder_by_path(project_name,
+                                             folder_path)
+        task = ayon_api.get_task_by_folder_path(project_name,
+                                                folder_path,
+                                                task_name)
+
+        if (folder is not None) and (task is not None):
+            update_context(folder, task)
+        else:
+            log.warning(f"Could not retrive saved script context! "
+                        f"{project_name}/{folder_path} | {task_name}")
+
 def set_script_settings(script_node, attr):
     """
     Set various settings on a Gaffer script
@@ -85,6 +116,8 @@ def setup_project(script_container=None, script_node=None):
         GafferScript.node = script_node
         GafferScript.container = script_container
 
+        retrive_script_context()
+
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
@@ -114,29 +147,25 @@ def setup_project(script_container=None, script_node=None):
 def update_context(folder, task=None):
     """
     Update the current context based on the provided folder and task.
+
+    If no task is provided, it attempts to find a task within the folder
+    that matches the types "Lookdev" or "Lighting", otherwise picks the first
+    task. If no such task is found, it logs a warning and returns.
     """
     project_name = get_current_project_name()
 
     if task is None:
         tasks = ayon_api.get_tasks_by_folder_path(project_name, folder["path"])
 
-        if tasks:
-            for task in tasks:
-                if task["taskType"] == "Lookdev":
-                    context_tools.change_current_context(folder, task)
-                    break
-                elif task["taskType"] == "Lighting":
-                    context_tools.change_current_context(folder, task)
-                    break
-            else:
-                context_tools.change_current_context(folder, tasks[0])
-        else:
-            log.warning(
-                f"No tasks found for folder \
+        if not tasks:
+            log.warning(f"No tasks found for folder \
                 '{folder['name']}', abort context change!")
             return
-    else:
-        context_tools.change_current_context(folder, task)
+
+        task = next((t for t in tasks if t["taskType"]
+                     in {"Lookdev", "Lighting"}), tasks[0])
+
+    context_tools.change_current_context(folder, task)
 
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()

@@ -1,5 +1,6 @@
 import ayon_api
 from ayon_core.lib import Logger
+from ayon_core.pipeline import context_tools
 from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path,
                                 get_current_task_name)
@@ -10,82 +11,26 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
-class GafferSignal(object):
-    """
-    A class to handle Gaffer signals for context changes.
-    """
-    __pre_context_changed = Gaffer.Signal1()
-    __post_context_changed = Gaffer.Signal1()
-
-    @classmethod
-    def pre_context_changed(cls):
-        """
-        Method to access the pre-context changed signal.
-
-        Returns:
-            Signal: The pre-context changed signal.
-        """
-        return cls.__pre_context_changed
-
-    @classmethod
-    def post_context_changed(cls):
-        """
-        Method to access the post-context changed signal.
-
-        Returns:
-            Signal: The post-context changed signal.
-        """
-        return cls.__post_context_changed
-
-class GafferScript(object):
-    """
-    GafferScript is a singleton class that manages a node and a container.
-    """
-    __node = None
-    __container = None
-    __instance = None
-
-    @property
-    def node(self):
-        return self.__node
-
-    @node.setter
-    def node(self, value):
-        self.__node = value
-
-    @property
-    def container(self):
-        return self.__container
-
-    @container.setter
-    def container(self, value):
-        self.__container = value
-
-    def __new__(cls, *args, **kwargs):
-        if cls.__instance is None:
-            cls.__instance = super().__new__(cls)
-        return cls.__instance
-
 def set_script_settings(script_node, attr):
-        """
-        Set various settings on a Gaffer script
-        node based on provided attributes.
-        """
-        script_node["frameRange"]["start"].setValue(attr["frameStart"])
-        script_node["frameRange"]["end"].setValue(attr["frameEnd"])
-        script_node["framesPerSecond"].setValue(attr["fps"])
+    """
+    Set various settings on a Gaffer script
+    node based on provided attributes.
+    """
+    script_node["frameRange"]["start"].setValue(attr["frameStart"])
+    script_node["frameRange"]["end"].setValue(attr["frameEnd"])
+    script_node["framesPerSecond"].setValue(attr["fps"])
 
-        display_window = script_node['defaultFormat']["displayWindow"]
-        display_window["min"]["x"].setValue(0)
-        display_window["min"]["y"].setValue(0)
-        display_window["max"]["x"].setValue(attr["resolutionWidth"])
-        display_window["max"]["y"].setValue(attr["resolutionHeight"])
+    display_window = script_node['defaultFormat']["displayWindow"]
+    display_window["min"]["x"].setValue(0)
+    display_window["min"]["y"].setValue(0)
+    display_window["max"]["x"].setValue(attr["resolutionWidth"])
+    display_window["max"]["y"].setValue(attr["resolutionHeight"])
 
-        default_format = script_node['defaultFormat']
-        default_format["pixelAspect"].setValue(attr["pixelAspect"])
+    default_format = script_node['defaultFormat']
+    default_format["pixelAspect"].setValue(attr["pixelAspect"])
 
-        playback = GafferUI.Playback.acquire(script_node.context())
-        playback.setFrameRange(attr["frameStart"], attr["frameEnd"])
+    playback = GafferUI.Playback.acquire(script_node.context())
+    playback.setFrameRange(attr["frameStart"], attr["frameEnd"])
 
 def set_script_variables(script_node, attr):
     """
@@ -165,3 +110,94 @@ def setup_project(script_container=None, script_node=None):
         set_script_variables(GafferScript.node, task_atrib)
 
     GafferSignal.post_context_changed()(GafferScript.node)
+
+def update_context(folder, task=None):
+    """
+    Update the current context based on the provided folder and task.
+    """
+    project_name = get_current_project_name()
+
+    if task is None:
+        tasks = ayon_api.get_tasks_by_folder_path(project_name, folder["path"])
+
+        if tasks:
+            for task in tasks:
+                if task["taskType"] == "Lookdev":
+                    context_tools.change_current_context(folder, task)
+                    break
+                elif task["taskType"] == "Lighting":
+                    context_tools.change_current_context(folder, task)
+                    break
+            else:
+                context_tools.change_current_context(folder, tasks[0])
+        else:
+            log.warning(
+                f"No tasks found for folder \
+                '{folder['name']}', abort context change!")
+            return
+    else:
+        context_tools.change_current_context(folder, task)
+
+    folder_path = get_current_folder_path()
+    task_name = get_current_task_name()
+
+    log.info(f"Ayon context has been set to "
+             f"{project_name}{folder_path} | {task_name}")
+
+    setup_project()
+
+class GafferSignal(object):
+    """
+    A class to handle Gaffer signals for context changes.
+    """
+    __pre_context_changed = Gaffer.Signal1()
+    __post_context_changed = Gaffer.Signal1()
+
+    @classmethod
+    def pre_context_changed(cls):
+        """
+        Method to access the pre-context changed signal.
+
+        Returns:
+            Signal: The pre-context changed signal.
+        """
+        return cls.__pre_context_changed
+
+    @classmethod
+    def post_context_changed(cls):
+        """
+        Method to access the post-context changed signal.
+
+        Returns:
+            Signal: The post-context changed signal.
+        """
+        return cls.__post_context_changed
+
+class GafferScript(object):
+    """
+    GafferScript is a singleton class that manages a node and a container.
+    """
+    __node = None
+    __container = None
+    __instance = None
+
+    @property
+    def node(self):
+        return self.__node
+
+    @node.setter
+    def node(self, value):
+        self.__node = value
+
+    @property
+    def container(self):
+        return self.__container
+
+    @container.setter
+    def container(self, value):
+        self.__container = value
+
+    def __new__(cls, *args, **kwargs):
+        if cls.__instance is None:
+            cls.__instance = super().__new__(cls)
+        return cls.__instance

@@ -8,7 +8,7 @@ from ayon_core.pipeline import (register_creator_plugin_path,
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
 from ayon_gaffer import GAFFER_HOST_DIR
-from ayon_gaffer.api.lib import (GafferScript, setup_project)
+from ayon_gaffer.api.lib import (GafferScript, setup_project, retrieve_script_context)
 
 import Gaffer
 import GafferUI.FileMenu
@@ -115,6 +115,8 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         GafferScript.node["unsavedChanges"].setValue(False)
 
         GafferUI.FileMenu.addRecentFile(self.application, dst_path)
+
+        retrieve_script_context()
 
     def update_context_data(self, data, changes):
         """

@@ -36,24 +36,34 @@ def retrieve_context():
 
 def set_script_settings(script_node, attr):
     """
-    Set various settings on a Gaffer script
-    node based on provided attributes.
+    Set various settings on a Gaffer script node based on provided attributes.
     """
-    script_node["frameRange"]["start"].setValue(attr["frameStart"])
-    script_node["frameRange"]["end"].setValue(attr["frameEnd"])
-    script_node["framesPerSecond"].setValue(attr["fps"])
+    frame_start = attr["frameStart"] - attr["handleStart"]
+    frame_end = attr["frameEnd"] + attr["handleEnd"]
+    fps = attr["fps"]
+    res_width = attr["resolutionWidth"]
+    res_height = attr["resolutionHeight"]
+    pix_aspect = attr["pixelAspect"]
+
+    script_node["frameRange"]["start"].setValue(frame_start)
+    script_node["frameRange"]["end"].setValue(frame_end)
+    script_node["framesPerSecond"].setValue(fps)
+
+    playback = GafferUI.Playback.acquire(script_node.context())
+    playback.setFrameRange(frame_start, frame_end)
+
+    log.info(f"Setting frame range {frame_start}-{frame_end}, {fps}fps")
 
     display_window = script_node['defaultFormat']["displayWindow"]
     display_window["min"]["x"].setValue(0)
     display_window["min"]["y"].setValue(0)
-    display_window["max"]["x"].setValue(attr["resolutionWidth"])
-    display_window["max"]["y"].setValue(attr["resolutionHeight"])
+    display_window["max"]["x"].setValue(res_width)
+    display_window["max"]["y"].setValue(res_height)
 
     default_format = script_node['defaultFormat']
-    default_format["pixelAspect"].setValue(attr["pixelAspect"])
+    default_format["pixelAspect"].setValue(pix_aspect)
 
-    playback = GafferUI.Playback.acquire(script_node.context())
-    playback.setFrameRange(attr["frameStart"], attr["frameEnd"])
+    log.info(f"Setting default format {res_width}x{res_height}, {pix_aspect}")
 
 def set_script_variables(script_node, attr):
     """

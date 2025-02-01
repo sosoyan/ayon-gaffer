@@ -1,7 +1,6 @@
 import os
 import json
 
-import ayon_api
 import pyblish.api
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (register_creator_plugin_path,

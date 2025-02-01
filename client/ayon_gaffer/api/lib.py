@@ -114,7 +114,7 @@ def setup_project(script_container=None, script_node=None):
     Sets up global veraiables and projects settings
     for the current Ayon context - project/folder/task
     """
-    if (script_container is not None) and (script_node is not None):
+    if all((script_container, script_node)):
         GafferScript.node = script_node
         GafferScript.container = script_container
 

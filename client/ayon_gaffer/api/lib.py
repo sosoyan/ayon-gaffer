@@ -29,7 +29,7 @@ def retrieve_context():
                                                 task_name)
 
         if all((folder, task)):
-            update_context(folder, task)
+            return update_context(folder, task)
         else:
             log.warning(f"Could not retrive saved script context! "
                         f"{project_name}/{folder_path} | {task_name}")
@@ -118,7 +118,8 @@ def setup_project(script_container=None, script_node=None):
         GafferScript.node = script_node
         GafferScript.container = script_container
 
-        retrieve_context()
+        if retrieve_context():
+            return
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
@@ -133,16 +134,15 @@ def setup_project(script_container=None, script_node=None):
                                             folder_path,
                                             task_name)
 
-    task_atrib = task.get("attrib")
+    task_attrib = task.get("attrib")
 
-    if task_atrib is not None:
+    if task_attrib:
+        task_attrib.update({"projectName": project_name,
+                            "folderPath": folder_path,
+                            "taskName": task_name})
 
-        task_atrib["projectName"] = project_name
-        task_atrib["folderPath"] = folder_path
-        task_atrib["taskName"] = task_name
-
-        set_script_settings(GafferScript.node, task_atrib)
-        set_script_variables(GafferScript.node, task_atrib)
+        set_script_settings(GafferScript.node, task_attrib)
+        set_script_variables(GafferScript.node, task_attrib)
 
     GafferSignal.post_context_changed()(GafferScript.node)
 
@@ -152,7 +152,7 @@ def update_context(folder, task=None):
 
     If no task is provided, it attempts to find a task within the folder
     that matches the types "Lookdev" or "Lighting", otherwise picks the first
-    task. If no such task is found, it logs a warning and returns.
+    task. If no such task is found, it logs a warning and returns False.
     """
     project_name = get_current_project_name()
 
@@ -162,7 +162,7 @@ def update_context(folder, task=None):
         if not tasks:
             log.warning(f"No tasks found for folder \
                 '{folder['name']}', abort context change!")
-            return
+            return False
 
         task = next((t for t in tasks if t["taskType"]
                      in {"Lookdev", "Lighting"}), tasks[0])
@@ -177,6 +177,8 @@ def update_context(folder, task=None):
 
     setup_project()
 
+    return True
+
 class GafferSignal(object):
     """
     A class to handle Gaffer signals for context changes.
@@ -188,9 +190,6 @@ class GafferSignal(object):
     def pre_context_changed(cls):
         """
         Method to access the pre-context changed signal.
-
-        Returns:
-            Signal: The pre-context changed signal.
         """
         return cls.__pre_context_changed
 
@@ -198,9 +197,6 @@ class GafferSignal(object):
     def post_context_changed(cls):
         """
         Method to access the post-context changed signal.
-
-        Returns:
-            Signal: The post-context changed signal.
         """
         return cls.__post_context_changed
 

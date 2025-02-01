@@ -8,10 +8,13 @@ from ayon_core.pipeline import (register_creator_plugin_path,
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
 from ayon_gaffer import GAFFER_HOST_DIR
-from ayon_gaffer.api.lib import (GafferScript, setup_project)
+from ayon_gaffer.api.lib import (GafferScript,
+                                 setup_project,
+                                 retrieve_context)
 
 import Gaffer
 import GafferUI.FileMenu
+
 
 log = Logger.get_logger(__name__)
 
@@ -20,13 +23,11 @@ CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
 
-
 class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     """
     GafferHost class that integrates with the Gaffer application and provides
     functionalities for workfile management, loading, and publishing.
     """
-
     name = "gaffer"
     ayon_context = "ayon_context"
 
@@ -91,7 +92,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         Raises:
             RuntimeError: If the specified file does not exist.
         """
-
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))
 
@@ -107,7 +107,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         If no destination path is provided, the current workfile path is used.
         The destination path is normalized to use forward slashes.
         """
-
         if not dst_path:
             dst_path = self.get_current_workfile()
 
@@ -119,7 +118,7 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
 
         GafferUI.FileMenu.addRecentFile(self.application, dst_path)
 
-        setup_project()
+        retrieve_context()
 
     def update_context_data(self, data, changes):
         """
@@ -138,7 +137,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         """
         Retrieves context data from the user plug in the Gaffer script node.
         """
-
         self.user_plug = GafferScript.node["user"]
         if self.ayon_context in self.user_plug:
             data_str = self.user_plug[self.ayon_context].getValue()

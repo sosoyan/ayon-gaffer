@@ -16,21 +16,19 @@ def retrieve_context():
     Tries to retrieve the saved script context by setting project, folder,
     and task from the Gaffer script variables and updating the context.
     """
-    script_vars = GafferScript.node["variables"]
+    context = GafferScript.node.context()
+    attrs = ["ayon:projectName", "ayon:folderPath", "ayon:taskName"]
 
-    attrs = {"ayon:projectName", "ayon:folderPath", "ayon:taskName"}
+    project_name, folder_path, task_name = (context.get(i) for i in attrs)
 
-    if all(k in script_vars.keys() for k in attrs):
-
-        task_name, folder_path, project_name = (
-            script_vars[k]["value"].getValue() for k in attrs)
+    if all((project_name, folder_path, task_name)):
 
         folder = ayon_api.get_folder_by_path(project_name, folder_path)
         task = ayon_api.get_task_by_folder_path(project_name,
                                                 folder_path,
                                                 task_name)
 
-        if (folder is not None) and (task is not None):
+        if all((folder, task)):
             update_context(folder, task)
         else:
             log.warning(f"Could not retrive saved script context! "

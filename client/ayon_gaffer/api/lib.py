@@ -11,7 +11,7 @@ import GafferUI
 
 log = Logger.get_logger(__name__)
 
-def retrieve_script_context():
+def retrieve_context():
     """
     Tries to retrieve the saved script context by setting project, folder,
     and task from the Gaffer script variables and updating the context.
@@ -116,7 +116,7 @@ def setup_project(script_container=None, script_node=None):
         GafferScript.node = script_node
         GafferScript.container = script_container
 
-        retrieve_script_context()
+        retrieve_context()
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()

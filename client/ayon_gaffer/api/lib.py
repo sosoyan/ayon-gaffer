@@ -159,7 +159,7 @@ def update_context(folder, task=None):
 
         if not tasks:
             log.warning(f"No tasks found for folder \
-                '{folder["name"]}', abort context change!")
+                '{folder['name']}', abort context change!")
             return
 
         task = next((t for t in tasks if t["taskType"]

@@ -14,13 +14,13 @@ from ayon_gaffer.api.lib import (GafferScript, setup_project)
 import Gaffer
 import GafferUI.FileMenu
 
+
 log = Logger.get_logger(__name__)
 
 PLUGINS_DIR = os.path.join(GAFFER_HOST_DIR, "plugins")
 CREATE_PATH = os.path.join(PLUGINS_DIR, "create")
 LOAD_PATH = os.path.join(PLUGINS_DIR, "load")
 PUBLISH_PATH = os.path.join(PLUGINS_DIR, "publish")
-
 
 class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     """

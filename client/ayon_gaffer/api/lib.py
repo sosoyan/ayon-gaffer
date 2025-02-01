@@ -18,20 +18,14 @@ def retrieve_context():
     """
     script_vars = GafferScript.node["variables"]
 
-    project_name = "ayon:projectName"
-    folder_path = "ayon:folderPath"
-    task_name = "ayon:taskName"
+    attrs = {"ayon:projectName", "ayon:folderPath", "ayon:taskName"}
 
-    if (project_name in script_vars.keys() and
-        folder_path in script_vars.keys() and
-        task_name in script_vars.keys()):
+    if all(k in script_vars.keys() for k in attrs):
 
-        project_name = script_vars[project_name]["value"].getValue()
-        folder_path = script_vars[folder_path]["value"].getValue()
-        task_name = script_vars[task_name]["value"].getValue()
+        task_name, folder_path, project_name = (
+            script_vars[k]["value"].getValue() for k in attrs)
 
-        folder = ayon_api.get_folder_by_path(project_name,
-                                             folder_path)
+        folder = ayon_api.get_folder_by_path(project_name, folder_path)
         task = ayon_api.get_task_by_folder_path(project_name,
                                                 folder_path,
                                                 task_name)

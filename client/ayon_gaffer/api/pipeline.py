@@ -145,7 +145,7 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             if any(key not in user for key in required):
                 continue
 
-            if user["id"].getValue() not in {AYON_CONTAINER_ID, 
+            if user["id"].getValue() not in {AYON_CONTAINER_ID,
                                              AVALON_CONTAINER_ID}:
                 continue
             container = {

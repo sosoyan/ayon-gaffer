@@ -183,9 +183,9 @@ def make_scene_load_box(
 ):
     '''
     Create a Box node to load a scene through. This facilitates placing the
-    loaded geometry (or whatever) under certain groups in the scenegraph 
+    loaded geometry (or whatever) under certain groups in the scenegraph
     (the `scenegraph_template` parameter). This also supports creating plugs
-    for other groups you want underneath the root scenegraph template 
+    for other groups you want underneath the root scenegraph template
     group.
 
     Arguments:

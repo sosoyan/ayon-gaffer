@@ -207,8 +207,7 @@ class GafferCreatorBase(NewCreator, CreatorImprintReadMixin):
         updating imprinted data on this node.
 
         Arguments:
-            product_name (str): The product name to be created. Usually used for
-                the node's name.
+            product_name (str): The product name to be created.
             pre_create_data (dict): The `pre_create_data` of the `create` call
                 of this Creator.
 

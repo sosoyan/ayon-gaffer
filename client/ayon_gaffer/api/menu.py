@@ -8,12 +8,12 @@ from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path,
                                 get_current_task_name)
 
-import IECore
-import GafferUI
+from ayon_gaffer.api.lib import (GafferSignal, update_context)
 
 from PySide2 import QtCore
 
-from ayon_gaffer.api.lib import (GafferSignal, update_context)
+import IECore
+import GafferUI
 
 
 log = Logger.get_logger(__name__)

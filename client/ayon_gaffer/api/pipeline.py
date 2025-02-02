@@ -78,10 +78,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def open_workfile(self, filepath):
         """
         Opens a workfile in Gaffer.
-        Args:
-            filepath (str): The path to the workfile to be opened.
-        Raises:
-            RuntimeError: If the specified file does not exist.
         """
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))

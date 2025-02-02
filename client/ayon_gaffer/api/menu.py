@@ -21,12 +21,6 @@ log = Logger.get_logger(__name__)
 def init_ayon_menu(menu):
     """
     Initializes the Ayon menu with various options and commands.
-
-    Args:
-        menu: The menu object to which the Ayon menu items will be added.
-
-    Returns:
-        IECore.MenuDefinition: Ayon menu items.
     """
     main_menu = IECore.MenuDefinition()
 

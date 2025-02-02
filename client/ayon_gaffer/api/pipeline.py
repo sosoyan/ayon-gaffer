@@ -3,7 +3,9 @@ import json
 
 import pyblish.api
 from ayon_core.lib import Logger
-from ayon_core.pipeline import (register_creator_plugin_path,
+from ayon_core.pipeline import (AYON_CONTAINER_ID,
+                                AVALON_CONTAINER_ID,
+                                register_creator_plugin_path,
                                 register_loader_plugin_path)
 from ayon_core.host import HostBase, IWorkfileHost, ILoadHost, IPublishHost
 
@@ -128,3 +130,28 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
             return json.loads(data_str)
 
         return {}
+
+    def get_containers(self):
+        required = [
+            "schema", "id", "name", "namespace", "representation", "loader"
+        ]
+
+        for node in GafferScript.node.children(Gaffer.Node):
+            if "user" not in node:
+                # No user attributes
+                continue
+
+            user = node["user"]
+            if any(key not in user for key in required):
+                continue
+
+            if user["id"].getValue() not in {AYON_CONTAINER_ID,
+                                             AVALON_CONTAINER_ID}:
+                continue
+            container = {
+                key: user[key].getValue() for key in required
+            }
+            container["objectName"] = node.fullName()
+            container["_node"] = node
+
+            yield container

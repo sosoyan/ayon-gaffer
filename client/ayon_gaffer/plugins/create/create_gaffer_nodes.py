@@ -1,11 +1,12 @@
 from ayon_gaffer.api.lib import make_box
-from ayon_gaffer.api import plugin
+from ayon_gaffer.api.plugin import (GafferCreatorBase,
+                                    GafferCreatorError)
 from ayon_gaffer.api.pipeline import AYON_CONTAINER_ID
 
 import Gaffer
 
 
-class CreateGafferNodes(plugin.GafferCreatorBase):
+class CreateGafferNodes(GafferCreatorBase):
     identifier = "io.ayon.creators.gaffer.gaffernodes"
     label = "Gaffer Box"
     product_type = "gafferNodes"
@@ -27,7 +28,7 @@ class CreateGafferNodes(plugin.GafferCreatorBase):
                 box_node = box_nodes[0]
                 data = self._read(box_node)
                 if data.get("id") == AYON_CONTAINER_ID:
-                    raise plugin.GafferCreatorError(
+                    raise GafferCreatorError(
                         "This box is already being published!")
             else:
                 # we have a mix of other nodes, group 'em up

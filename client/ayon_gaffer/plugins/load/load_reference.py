@@ -1,8 +1,8 @@
-from ayon_core.pipeline import (
-    get_representation_path,
-)
+from ayon_core.pipeline import get_representation_path
+
 from ayon_gaffer.api.lib import GafferScript
-from ayon_gaffer.api.plugin import (GafferLoaderBase, imprint_container)
+from ayon_gaffer.api.plugin import (GafferLoaderBase,
+                                    imprint_container)
 
 import Gaffer
 

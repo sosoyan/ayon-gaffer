@@ -21,12 +21,6 @@ log = Logger.get_logger(__name__)
 def init_ayon_menu(menu):
     """
     Initializes the Ayon menu with various options and commands.
-
-    Args:
-        menu: The menu object to which the Ayon menu items will be added.
-
-    Returns:
-        IECore.MenuDefinition: Ayon menu items.
     """
     main_menu = IECore.MenuDefinition()
 
@@ -87,16 +81,16 @@ def init_context_menu_items(context_menu, item):
     """
     if item.get("children"):
 
-        folder_menu = IECore.MenuDefinition()
-        context_menu.append(item["name"], {"subMenu": folder_menu})
+        item_menu = IECore.MenuDefinition()
+        context_menu.append(item["name"], {"subMenu": item_menu})
 
-        for child_folder in item["children"]:
+        for child_item in item["children"]:
 
-            child_folder_menu = IECore.MenuDefinition()
-            folder_menu.append(
-                child_folder["name"], {"subMenu": child_folder_menu})
+            child_item_menu = IECore.MenuDefinition()
+            item_menu.append(
+                child_item["name"], {"subMenu": child_item_menu})
 
-            init_context_menu_items(folder_menu, child_folder)
+            init_context_menu_items(item_menu, child_item)
     else:
         project_name = get_current_project_name()
         folder = ayon_api.get_folder_by_id(project_name, item["id"])

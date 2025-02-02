@@ -16,52 +16,54 @@ def retrieve_context():
     Tries to retrieve the saved script context by setting project, folder,
     and task from the Gaffer script variables and updating the context.
     """
-    script_vars = GafferScript.node["variables"]
+    context = GafferScript.node.context()
+    attrs = ["ayon:projectName", "ayon:folderPath", "ayon:taskName"]
 
-    project_name = "ayon:projectName"
-    folder_path = "ayon:folderPath"
-    task_name = "ayon:taskName"
+    project_name, folder_path, task_name = (context.get(i) for i in attrs)
 
-    if (project_name in script_vars.keys() and
-        folder_path in script_vars.keys() and
-        task_name in script_vars.keys()):
+    if all((project_name, folder_path, task_name)):
 
-        project_name = script_vars[project_name]["value"].getValue()
-        folder_path = script_vars[folder_path]["value"].getValue()
-        task_name = script_vars[task_name]["value"].getValue()
-
-        folder = ayon_api.get_folder_by_path(project_name,
-                                             folder_path)
+        folder = ayon_api.get_folder_by_path(project_name, folder_path)
         task = ayon_api.get_task_by_folder_path(project_name,
                                                 folder_path,
                                                 task_name)
 
-        if (folder is not None) and (task is not None):
-            update_context(folder, task)
+        if all((folder, task)):
+            return update_context(folder, task)
         else:
             log.warning(f"Could not retrive saved script context! "
                         f"{project_name}/{folder_path} | {task_name}")
 
 def set_script_settings(script_node, attr):
     """
-    Set various settings on a Gaffer script
-    node based on provided attributes.
+    Set various settings on a Gaffer script node based on provided attributes.
     """
-    script_node["frameRange"]["start"].setValue(attr["frameStart"])
-    script_node["frameRange"]["end"].setValue(attr["frameEnd"])
-    script_node["framesPerSecond"].setValue(attr["fps"])
+    frame_start = attr["frameStart"] - attr["handleStart"]
+    frame_end = attr["frameEnd"] + attr["handleEnd"]
+    fps = attr["fps"]
+    res_width = attr["resolutionWidth"]
+    res_height = attr["resolutionHeight"]
+    pix_aspect = attr["pixelAspect"]
+
+    script_node["frameRange"]["start"].setValue(frame_start)
+    script_node["frameRange"]["end"].setValue(frame_end)
+    script_node["framesPerSecond"].setValue(fps)
+
+    playback = GafferUI.Playback.acquire(script_node.context())
+    playback.setFrameRange(frame_start, frame_end)
+
+    log.info(f"Setting frame range {frame_start}-{frame_end}, {fps}fps")
 
     display_window = script_node['defaultFormat']["displayWindow"]
     display_window["min"]["x"].setValue(0)
     display_window["min"]["y"].setValue(0)
-    display_window["max"]["x"].setValue(attr["resolutionWidth"])
-    display_window["max"]["y"].setValue(attr["resolutionHeight"])
+    display_window["max"]["x"].setValue(res_width)
+    display_window["max"]["y"].setValue(res_height)
 
     default_format = script_node['defaultFormat']
-    default_format["pixelAspect"].setValue(attr["pixelAspect"])
+    default_format["pixelAspect"].setValue(pix_aspect)
 
-    playback = GafferUI.Playback.acquire(script_node.context())
-    playback.setFrameRange(attr["frameStart"], attr["frameEnd"])
+    log.info(f"Setting default format {res_width}x{res_height}, {pix_aspect}")
 
 def set_script_variables(script_node, attr):
     """
@@ -112,11 +114,12 @@ def setup_project(script_container=None, script_node=None):
     Sets up global veraiables and projects settings
     for the current Ayon context - project/folder/task
     """
-    if (script_container is not None) and (script_node is not None):
+    if all((script_container, script_node)):
         GafferScript.node = script_node
         GafferScript.container = script_container
 
-        retrieve_context()
+        if retrieve_context():
+            return
 
     project_name = get_current_project_name()
     folder_path = get_current_folder_path()
@@ -131,16 +134,15 @@ def setup_project(script_container=None, script_node=None):
                                             folder_path,
                                             task_name)
 
-    task_atrib = task.get("attrib")
+    task_attrib = task.get("attrib")
 
-    if task_atrib is not None:
+    if task_attrib:
+        task_attrib.update({"projectName": project_name,
+                            "folderPath": folder_path,
+                            "taskName": task_name})
 
-        task_atrib["projectName"] = project_name
-        task_atrib["folderPath"] = folder_path
-        task_atrib["taskName"] = task_name
-
-        set_script_settings(GafferScript.node, task_atrib)
-        set_script_variables(GafferScript.node, task_atrib)
+        set_script_settings(GafferScript.node, task_attrib)
+        set_script_variables(GafferScript.node, task_attrib)
 
     GafferSignal.post_context_changed()(GafferScript.node)
 
@@ -150,7 +152,7 @@ def update_context(folder, task=None):
 
     If no task is provided, it attempts to find a task within the folder
     that matches the types "Lookdev" or "Lighting", otherwise picks the first
-    task. If no such task is found, it logs a warning and returns.
+    task. If no such task is found, it logs a warning and returns False.
     """
     project_name = get_current_project_name()
 
@@ -160,7 +162,7 @@ def update_context(folder, task=None):
         if not tasks:
             log.warning(f"No tasks found for folder \
                 '{folder['name']}', abort context change!")
-            return
+            return False
 
         task = next((t for t in tasks if t["taskType"]
                      in {"Lookdev", "Lighting"}), tasks[0])
@@ -175,6 +177,8 @@ def update_context(folder, task=None):
 
     setup_project()
 
+    return True
+
 class GafferSignal(object):
     """
     A class to handle Gaffer signals for context changes.
@@ -186,9 +190,6 @@ class GafferSignal(object):
     def pre_context_changed(cls):
         """
         Method to access the pre-context changed signal.
-
-        Returns:
-            Signal: The pre-context changed signal.
         """
         return cls.__pre_context_changed
 
@@ -196,9 +197,6 @@ class GafferSignal(object):
     def post_context_changed(cls):
         """
         Method to access the post-context changed signal.
-
-        Returns:
-            Signal: The post-context changed signal.
         """
         return cls.__post_context_changed
 

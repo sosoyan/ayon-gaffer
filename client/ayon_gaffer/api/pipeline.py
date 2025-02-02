@@ -54,43 +54,30 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
         """
         Closes the given script window.
         """
-
         script_window.close()
 
     def has_unsaved_changes(self):
         """
         Check if there are unsaved changes in the Gaffer script.
 
-        Returns:
-            bool: True if there are unsaved changes, False otherwise.
         """
         return GafferScript.node["unsavedChanges"].getValue()
 
     def get_current_workfile(self):
         """
         Retrieve the current workfile name from the GafferScript node.
-
-        Returns:
-            str: The name of the current workfile.
         """
         return GafferScript.node["fileName"].getValue()
 
     def get_workfile_extensions(self):
         """
         Get the list of workfile extensions.
-
-        Returns:
-            list: A list containing the workfile extensions as strings.
         """
         return [".gfr"]
 
     def open_workfile(self, filepath):
         """
         Opens a workfile in Gaffer.
-        Args:
-            filepath (str): The path to the workfile to be opened.
-        Raises:
-            RuntimeError: If the specified file does not exist.
         """
         if not os.path.exists(filepath):
             raise RuntimeError("File does not exist: {}".format(filepath))
@@ -104,8 +91,6 @@ class GafferHost(HostBase, IWorkfileHost, ILoadHost, IPublishHost):
     def save_workfile(self, dst_path=None):
         """
         Saves the current workfile to the specified destination path.
-        If no destination path is provided, the current workfile path is used.
-        The destination path is normalized to use forward slashes.
         """
         if not dst_path:
             dst_path = self.get_current_workfile()

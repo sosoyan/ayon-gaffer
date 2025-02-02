@@ -442,12 +442,14 @@ def setup_project(script_container=None, script_node=None):
                                             folder_path,
                                             task_name)
 
+    tags = task.get("tags")
     task_attrib = task.get("attrib")
 
     if task_attrib:
         task_attrib.update({"projectName": project_name,
                             "folderPath": folder_path,
-                            "taskName": task_name})
+                            "taskName": task_name,
+                            "tags": " ".join(tags)})
 
         set_script_settings(GafferScript.node, task_attrib)
         set_script_variables(GafferScript.node, task_attrib)

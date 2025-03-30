@@ -8,13 +8,11 @@ from ayon_gaffer.api.lib import GafferScript
 
 import IECore
 import Gaffer
+import GafferUI
 import GafferScene
 
 
 log = Logger.get_logger(__name__)
-
-def ver_str(ver):
-    return f"v{ver:03d}"
 
 def eval_str(value):
     sub_value = GafferScript.node.context().substitute(value)
@@ -69,6 +67,18 @@ def get_representations(project_name, version_id):
 
     return list(representations)
 
+def version_picker(status):
+    status_priority = {
+        "Reference": 1,
+        "Rejected": 2,
+        "Not Ready": 3,
+        "Pending Review": 4,
+        "In Progress": 5,
+        "Approved": 6
+    }
+
+    return status_priority.get(status, 0)
+
 class ProductReaderSerialiser(Gaffer.NodeSerialiser):
     """
     Ayon Reader Serializer
@@ -107,6 +117,8 @@ class ProductReader(GafferScene.SceneNode):
 
         GafferScene.SceneNode.__init__(self, name)
 
+        self.addChild(Gaffer.IntPlug("reload",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
                                         "${ayon:projectName}"))
@@ -127,6 +139,7 @@ class ProductReader(GafferScene.SceneNode):
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("refreshCount",
                                      Gaffer.Plug.Direction.In))
+
         self.addChild(Gaffer.TransformPlug("transform",
                                            Gaffer.Plug.Direction.In))
 
@@ -158,6 +171,7 @@ class ProductReader(GafferScene.SceneNode):
 
     def hash(self, output, context, h):
         h.append(self["filePath"].hash())
+        h.append(self['reload'].hash())
 
     def plug_set(self, plug):
         if(plug.getName() == "projectName"):
@@ -191,6 +205,8 @@ class ProductReader(GafferScene.SceneNode):
             self.reload_resolved_path()
         elif(plug.getName() == "representation"):
             self.reload_resolved_path()
+        elif(plug.getName() == "reload"):
+            self.reload_all()
 
     def register_plug_presetes(self, plug, name, value):
         Gaffer.Metadata.registerPlugValue(plug, "preset:" + name, value)
@@ -259,15 +275,20 @@ class ProductReader(GafferScene.SceneNode):
         product_id = ast.literal_eval(self["productName"].getValue())["id"]
         versions = get_product_versions(project_name, product_id)
 
-        for i, version in enumerate(versions):
+        picked_status = 0
+
+        for version in versions:
             self.register_plug_presetes(
                 self["productVersion"],
-                ver_str(version["version"]),
+                f"{version['name']} ({version['status']})",
                 str(version))
 
-            if i == len(versions) - 1:
+            current_status = version_picker(version["status"])
+
+            if picked_status >= current_status:
+                picked_status = current_status
                 select_preset(self["productVersion"],
-                              ver_str(version["version"]))
+                              f"{version['name']} ({version['status']})")
 
     def reload_representations(self):
         self.deregister_plug_presetes(self["representation"])
@@ -314,6 +335,9 @@ class ProductReader(GafferScene.SceneNode):
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
+def onReloadButtonClicked(*args):
+    print("Reload button clicked!")
+
 Gaffer.Metadata.registerNode(
     ProductReader,
     "description", "Ayon Product Reader",
@@ -344,7 +368,9 @@ Gaffer.Metadata.registerNode(
         "refreshCount": [
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
-            "layout:accessory", True]
+            "layout:accessory", True],
+        "reload": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"]
         }
     )
 

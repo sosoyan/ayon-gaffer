@@ -25,22 +25,12 @@ def eval_str(value):
     else:
         return value
 
-def replace_curly_braces(path, replacement_string):
-
-    start = path.find("{")
-    end = path.find("}")
-
-    if start != -1 and end != -1:
-        path = path[:start] + replacement_string + path[end + 1:]
-
-    return path
-
-def select_preset(plug, preset_name):
-    preset_value = Gaffer.Metadata.value(plug, f"preset:{preset_name}")
-    if preset_value is not None:
-        plug.setValue(preset_value)
+def select_preset(plug, prereload_name):
+    prereload_value = Gaffer.Metadata.value(plug, f"preset:{prereload_name}")
+    if prereload_value is not None:
+        plug.setValue(prereload_value)
     else:
-        print(f"Preset '{preset_name}' not found!")
+        log.error(f"Preset '{prereload_name}' not found!")
 
 def get_project_names():
     return ayon_api.get_project_names()
@@ -113,13 +103,9 @@ class ProductReaderSerialiser(Gaffer.NodeSerialiser):
                                                             serialisation)
 
 class ProductReader(GafferScene.SceneNode):
-    """
-    Ayon Reader Node
-    """
+
     def __init__(self, name="ProductReader"):
-        """
-        @param name: str
-        """
+
         GafferScene.SceneNode.__init__(self, name)
 
         # Status string
@@ -138,41 +124,51 @@ class ProductReader(GafferScene.SceneNode):
         self["respresentation"] = Gaffer.StringPlug()
         self["projectRoot"] = Gaffer.StringPlug()
         self["resolvedPath"] = Gaffer.StringPlug()
-        self["refresh"] = Gaffer.IntPlug()
+        self["refreshCount"] = Gaffer.IntPlug()
 
         self.scene_reader = GafferScene.SceneReader()
         self.scene_reader["fileName"].setInput(self["resolvedPath"])
+        self.scene_reader['refreshCount'].setInput(self["refreshCount"])
+
         self.addChild(self.scene_reader)
 
         self["out"] = GafferScene.ScenePlug("out", Gaffer.Plug.Direction.Out)
         self["out"].setInput(self.scene_reader["out"])
 
-        self.refresh_context()
-
         self.plugSetSignal().connect(self.plug_set, scoped=False)
+
+        self.reload_all()
 
     def register_plug_presetes(self, plug, name, value):
         Gaffer.Metadata.registerPlugValue(plug, "preset:" + name, value)
 
-    def deregister_plug_presetes(self):
-        for plug in self.children():
-            if isinstance(plug, Gaffer._Gaffer.StringPlug):
-                metadata_keys = Gaffer.Metadata.registeredValues(plug)
+    def deregister_plug_presetes(self, plug):
+        metadata_keys = Gaffer.Metadata.registeredValues(plug)
 
-                for key in metadata_keys:
-                    if key.startswith("preset:"):
-                        Gaffer.Metadata.deregisterValue(plug, key)
+        for key in metadata_keys:
+            if key.startswith("preset:"):
+                Gaffer.Metadata.deregisterValue(plug, key)
 
-    def refresh_context(self):
-        self.deregister_plug_presetes()
+    def reload_all(self):
+        self.reload_project_names()
+        self.reload_product_types()
+        self.reload_product_names()
+        self.reload_product_versions()
+        self.reload_representations()
+        self.reload_project_roots()
+        self.reload_resolved_path()
 
-        # Set project names
+    def reload_project_names(self):
+        self.deregister_plug_presetes(self["projectName"])
+
         for name in get_project_names():
             self.register_plug_presetes(self["projectName"], name, name)
 
+    def reload_product_types(self):
+        self.deregister_plug_presetes(self["productType"])
+
         project_name = eval_str(self["projectName"].getValue())
 
-        # Set product types
         folder_path = eval_str(self["folderPath"].getValue())
         product_types = get_product_types(project_name, folder_path)
 
@@ -182,14 +178,19 @@ class ProductReader(GafferScene.SceneNode):
             if i == 0:
                 select_preset(self["productType"], p_type)
 
-        # Set product names
+    def reload_product_names(self):
+        self.deregister_plug_presetes(self["productName"])
+
+        project_name = eval_str(self["projectName"].getValue())
+        folder_path = eval_str(self["folderPath"].getValue())
         product_type = eval_str(self["productType"].getValue())
-        pproduct_names = get_product_names(
+
+        product_names = get_product_names(
             project_name,
             folder_path,
             product_type)
 
-        for i, product in enumerate(pproduct_names):
+        for i, product in enumerate(product_names):
             self.register_plug_presetes(
                 self["productName"],
                 product["name"],
@@ -198,7 +199,10 @@ class ProductReader(GafferScene.SceneNode):
             if i == 0:
                 select_preset(self["productName"], product["name"])
 
-        # Set product versions
+    def reload_product_versions(self):
+        self.deregister_plug_presetes(self["productVersion"])
+
+        project_name = eval_str(self["projectName"].getValue())
         product_id = ast.literal_eval(self["productName"].getValue())["id"]
         versions = get_product_versions(project_name, product_id)
 
@@ -212,13 +216,16 @@ class ProductReader(GafferScene.SceneNode):
                 select_preset(self["productVersion"],
                               ver_str(version["version"]))
 
-        # Set representations
+    def reload_representations(self):
+        self.deregister_plug_presetes(self["respresentation"])
+
+        project_name = eval_str(self["projectName"].getValue())
         version_id = ast.literal_eval(self["productVersion"].getValue())["id"]
         representations = get_representations(
             project_name,
             version_id)
 
-        for repr in representations:
+        for i, repr in enumerate(representations):
             self.register_plug_presetes(
                 self["respresentation"],
                 repr["files"][0]["name"],
@@ -228,7 +235,10 @@ class ProductReader(GafferScene.SceneNode):
                 select_preset(self["respresentation"],
                               repr["files"][0]["name"])
 
-        # Set project roots
+    def reload_project_roots(self):
+        self.deregister_plug_presetes(self["projectRoot"])
+
+        project_name = eval_str(self["projectName"].getValue())
         project_roots = get_project_roots(project_name)
 
         for i, (key, value) in enumerate(project_roots.items()):
@@ -237,13 +247,17 @@ class ProductReader(GafferScene.SceneNode):
             if i == 0:
                 select_preset(self["projectRoot"], key)
 
-        # Set resolved path
-        resolved_path = ast.literal_eval(
-            self["respresentation"].getValue())["path"]
-        resolved_path = replace_curly_braces(resolved_path,
-                                             self["projectRoot"].getValue())
+    def reload_resolved_path(self):
+        path = ast.literal_eval(self["respresentation"].getValue())["path"]
 
-        self["resolvedPath"].setValue(resolved_path)
+        start = path.find("{")
+        end = path.find("}")
+
+        if start != -1 and end != -1:
+            root = self["projectRoot"].getValue()
+            resolved_path = path[:start] + root + path[end + 1:]
+
+            self["resolvedPath"].setValue(resolved_path)
 
     def hash(self, output, context, h):
         """
@@ -286,7 +300,37 @@ class ProductReader(GafferScene.SceneNode):
         @param plug: Gaffer.Plug
         @return: None
         """
-        print("Plug set: ", plug.getName())
+        if(plug.getName() == "projectName"):
+            self.reload_product_types()
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "folderPath"):
+            self.reload_product_types()
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productType"):
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productName"):
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productVersion"):
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "respresentation"):
+            self.reload_resolved_path()
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
@@ -317,9 +361,12 @@ Gaffer.Metadata.registerNode(
         "respresentation": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
-        "refresh": [
-            "plugValueWidget:type", "GafferUI.ButtonPlugValueWidget"]
+        "refreshCount": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True]
         }
     )
 
-Gaffer.Serialisation.registerSerialiser(ProductReader, ProductReaderSerialiser())
+Gaffer.Serialisation.registerSerialiser(ProductReader, 
+                                        ProductReaderSerialiser())

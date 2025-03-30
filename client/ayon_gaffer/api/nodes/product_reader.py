@@ -229,8 +229,9 @@ class ProductReader(GafferScene.SceneNode):
 
     def reload_project_names(self):
         self.deregister_plug_presetes(self["projectName"])
+        project_names = ["${ayon:projectName}"] + get_project_names()
 
-        for name in get_project_names():
+        for name in project_names:
             self.register_plug_presetes(self["projectName"], name, name)
 
     def reload_product_types(self):
@@ -335,23 +336,16 @@ class ProductReader(GafferScene.SceneNode):
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
-def onReloadButtonClicked(*args):
-    print("Reload button clicked!")
-
 Gaffer.Metadata.registerNode(
     ProductReader,
     "description", "Ayon Product Reader",
     "graphEditor:childrenViewable", True,
     plugs={
          "projectName": [
-             "preset:${ayon:projectName}", "${ayon:projectName}",
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "projectRoot": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
-
-        "folderPath": [
-            "preset:${ayon:folderPath}", "${ayon:folderPath}"],
 
         "productType": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],

@@ -4,7 +4,6 @@ import platform
 import ayon_api
 
 from ayon_core.lib import Logger
-
 from ayon_gaffer.api.lib import GafferScript
 
 import IECore
@@ -110,34 +109,97 @@ class ProductReader(GafferScene.SceneNode):
 
         # Status string
         self.status = str()
-        self.tmp = IECore.StringVectorData(["assd", "asdsdsdad"])
+        self.addChild(Gaffer.StringPlug("projectName",
+                                        Gaffer.Plug.Direction.In,
+                                        "${ayon:projectName}"))
+        self.addChild(Gaffer.StringPlug("folderPath",
+                                        Gaffer.Plug.Direction.In,
+                                        "${ayon:folderPath}"))
+        self.addChild(Gaffer.StringPlug("productType",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.StringPlug("productName",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.StringPlug("productVersion",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.StringPlug("representation",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.StringPlug("projectRoot",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.StringPlug("filePath",
+                                        Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("refreshCount",
+                                     Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.TransformPlug("transform",
+                                           Gaffer.Plug.Direction.In))
 
-        self["projectName"] = Gaffer.StringPlug(
-            defaultValue="${ayon:projectName}"
-            )
-        self["folderPath"] = Gaffer.StringPlug(
-            defaultValue="${ayon:folderPath}"
-            )
-        self["productType"] = Gaffer.StringPlug()
-        self["productName"] = Gaffer.StringPlug()
-        self["productVersion"] = Gaffer.StringPlug()
-        self["respresentation"] = Gaffer.StringPlug()
-        self["projectRoot"] = Gaffer.StringPlug()
-        self["resolvedPath"] = Gaffer.StringPlug()
-        self["refreshCount"] = Gaffer.IntPlug()
+        self["sceneReader"] = GafferScene.SceneReader()
+        self["sceneReader"]["fileName"].setInput(self["filePath"])
+        self["sceneReader"]['refreshCount'].setInput(self["refreshCount"])
+        self["sceneReader"]["transform"].setInput(self["transform"])
 
-        self.scene_reader = GafferScene.SceneReader()
-        self.scene_reader["fileName"].setInput(self["resolvedPath"])
-        self.scene_reader['refreshCount'].setInput(self["refreshCount"])
-
-        self.addChild(self.scene_reader)
-
-        self["out"] = GafferScene.ScenePlug("out", Gaffer.Plug.Direction.Out)
-        self["out"].setInput(self.scene_reader["out"])
+        self["out"].setInput(self["sceneReader"]["out"])
 
         self.plugSetSignal().connect(self.plug_set, scoped=False)
 
+        Gaffer.Metadata.registerValue(self["transform"],
+                                      "layout:section",
+                                      "Transform")
+
         self.reload_all()
+
+    def affects(self, input):
+        affected = super(ProductReader, self).affects(input)
+
+        if input == self["filePath"]:
+            affected.append(self["sceneReader"]["fileName"])
+
+        elif input == self["refreshCount"]:
+            affected.append(self["sceneReader"]["refreshCount"])
+
+        return affected
+
+    def hash(self, output, context, h):
+        h.append(self["filePath"].hash())
+
+    def hashCachePolicy(self, output):
+        return Gaffer.ValuePlug.CachePolicy.Uncached
+
+    def compute(self, output, context):
+        if output.getName() == "status":
+            output.setValue(self.status)
+
+    def plug_set(self, plug):
+        if(plug.getName() == "projectName"):
+            self.reload_product_types()
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "folderPath"):
+            self.reload_product_types()
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productType"):
+            self.reload_product_names()
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productName"):
+            self.reload_product_versions()
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "productVersion"):
+            self.reload_representations()
+            self.reload_project_roots()
+            self.reload_resolved_path()
+        elif(plug.getName() == "representation"):
+            self.reload_resolved_path()
 
     def register_plug_presetes(self, plug, name, value):
         Gaffer.Metadata.registerPlugValue(plug, "preset:" + name, value)
@@ -217,7 +279,7 @@ class ProductReader(GafferScene.SceneNode):
                               ver_str(version["version"]))
 
     def reload_representations(self):
-        self.deregister_plug_presetes(self["respresentation"])
+        self.deregister_plug_presetes(self["representation"])
 
         project_name = eval_str(self["projectName"].getValue())
         version_id = ast.literal_eval(self["productVersion"].getValue())["id"]
@@ -227,12 +289,12 @@ class ProductReader(GafferScene.SceneNode):
 
         for i, repr in enumerate(representations):
             self.register_plug_presetes(
-                self["respresentation"],
+                self["representation"],
                 repr["files"][0]["name"],
                 str(repr["files"][0]))
 
             if i == 0:
-                select_preset(self["respresentation"],
+                select_preset(self["representation"],
                               repr["files"][0]["name"])
 
     def reload_project_roots(self):
@@ -248,7 +310,7 @@ class ProductReader(GafferScene.SceneNode):
                 select_preset(self["projectRoot"], key)
 
     def reload_resolved_path(self):
-        path = ast.literal_eval(self["respresentation"].getValue())["path"]
+        path = ast.literal_eval(self["representation"].getValue())["path"]
 
         start = path.find("{")
         end = path.find("}")
@@ -257,80 +319,7 @@ class ProductReader(GafferScene.SceneNode):
             root = self["projectRoot"].getValue()
             resolved_path = path[:start] + root + path[end + 1:]
 
-            self["resolvedPath"].setValue(resolved_path)
-
-    def hash(self, output, context, h):
-        """
-        Implementation of native method
-        @param output: Gaffer.Plug
-        @param context: Gaffer.Context
-        @param h: IECore.MurmurHash
-        @return: None
-        """
-        h.append(self["projectName"].hash())
-        h.append(self["projectRoot"].hash())
-        h.append(self["folderPath"].hash())
-        h.append(self["productType"].hash())
-        h.append(self["productName"].hash())
-        h.append(self["Version"].hash())
-
-
-    def hashCachePolicy(self, output):
-        """
-        Implementation of native method
-        @param output: Gaffer.Plug
-        @return: Gaffer.ValuePlug.CachePolicy
-        """
-        return Gaffer.ValuePlug.CachePolicy.Uncached
-
-    def compute(self, output, context):
-        """
-        Implementation of native method
-        @param output: Gaffer.Plug
-        @param context: Gaffer.Context
-        @return:
-        """
-        print("Compute: ", output.getName())
-        if output.getName() == "status":
-            output.setValue(self.status)
-
-    def plug_set(self, plug):
-        """
-        Sets plug value
-        @param plug: Gaffer.Plug
-        @return: None
-        """
-        if(plug.getName() == "projectName"):
-            self.reload_product_types()
-            self.reload_product_names()
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
-        elif(plug.getName() == "folderPath"):
-            self.reload_product_types()
-            self.reload_product_names()
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
-        elif(plug.getName() == "productType"):
-            self.reload_product_names()
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
-        elif(plug.getName() == "productName"):
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
-        elif(plug.getName() == "productVersion"):
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
-        elif(plug.getName() == "respresentation"):
-            self.reload_resolved_path()
+            self["filePath"].setValue(resolved_path)
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
@@ -358,7 +347,7 @@ Gaffer.Metadata.registerNode(
         "productVersion": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
-        "respresentation": [
+        "representation": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "refreshCount": [
@@ -368,5 +357,5 @@ Gaffer.Metadata.registerNode(
         }
     )
 
-Gaffer.Serialisation.registerSerialiser(ProductReader, 
+Gaffer.Serialisation.registerSerialiser(ProductReader,
                                         ProductReaderSerialiser())

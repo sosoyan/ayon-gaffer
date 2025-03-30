@@ -8,7 +8,6 @@ from ayon_gaffer.api.lib import GafferScript
 
 import IECore
 import Gaffer
-import GafferUI
 import GafferScene
 
 
@@ -220,6 +219,7 @@ class ProductReader(GafferScene.SceneNode):
 
     def reload_all(self):
         self.reload_project_names()
+        self.reload_folder_path()
         self.reload_product_types()
         self.reload_product_names()
         self.reload_product_versions()
@@ -233,6 +233,9 @@ class ProductReader(GafferScene.SceneNode):
 
         for name in project_names:
             self.register_plug_presetes(self["projectName"], name, name)
+
+    def reload_folder_path(self):
+        self["folderPath"].setValue("${ayon:folderPath}")
 
     def reload_product_types(self):
         self.deregister_plug_presetes(self["productType"])

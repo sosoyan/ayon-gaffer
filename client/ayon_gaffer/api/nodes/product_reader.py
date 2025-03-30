@@ -107,8 +107,6 @@ class ProductReader(GafferScene.SceneNode):
 
         GafferScene.SceneNode.__init__(self, name)
 
-        # Status string
-        self.status = str()
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
                                         "${ayon:projectName}"))
@@ -160,13 +158,6 @@ class ProductReader(GafferScene.SceneNode):
 
     def hash(self, output, context, h):
         h.append(self["filePath"].hash())
-
-    def hashCachePolicy(self, output):
-        return Gaffer.ValuePlug.CachePolicy.Uncached
-
-    def compute(self, output, context):
-        if output.getName() == "status":
-            output.setValue(self.status)
 
     def plug_set(self, plug):
         if(plug.getName() == "projectName"):

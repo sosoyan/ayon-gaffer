@@ -50,10 +50,23 @@ def get_project_roots(project_name):
         project_name,
         platform.system().lower())
 
-def get_products(project_name, folder_path):
+def get_product_types(project_name, folder_path):
     folder_id = ayon_api.get_folder_by_path(project_name, folder_path)["id"]
     products = ayon_api.get_products(project_name, folder_ids=[folder_id])
-    return list(products)
+
+    product_types = list(set(
+        product['productType'] for product in list(products)))
+
+    return product_types
+
+def get_product_names(project_name, folder_path, product_type):
+    folder_id = ayon_api.get_folder_by_path(project_name, folder_path)["id"]
+    products = ayon_api.get_products(project_name, folder_ids=[folder_id])
+
+    product_names = [i for i in products if
+                    i['productType'] == product_type]
+
+    return product_names
 
 def get_product_versions(project_name, product_id):
     versions = ayon_api.get_versions(project_name, product_ids=[product_id])
@@ -116,7 +129,6 @@ class ProductReader(GafferScene.SceneNode):
         self["projectName"] = Gaffer.StringPlug(
             defaultValue="${ayon:projectName}"
             )
-        self["projectRoot"] = Gaffer.StringPlug()
         self["folderPath"] = Gaffer.StringPlug(
             defaultValue="${ayon:folderPath}"
             )
@@ -124,6 +136,7 @@ class ProductReader(GafferScene.SceneNode):
         self["productName"] = Gaffer.StringPlug()
         self["productVersion"] = Gaffer.StringPlug()
         self["respresentation"] = Gaffer.StringPlug()
+        self["projectRoot"] = Gaffer.StringPlug()
         self["resolvedPath"] = Gaffer.StringPlug()
         self["refresh"] = Gaffer.IntPlug()
 
@@ -157,22 +170,11 @@ class ProductReader(GafferScene.SceneNode):
         for name in get_project_names():
             self.register_plug_presetes(self["projectName"], name, name)
 
-        # Set project roots
         project_name = eval_str(self["projectName"].getValue())
-        project_roots = get_project_roots(project_name)
-
-        for i, (key, value) in enumerate(project_roots.items()):
-            self.register_plug_presetes(self["projectRoot"], key, value)
-
-            if i == 0:
-                select_preset(self["projectRoot"], key)
 
         # Set product types
         folder_path = eval_str(self["folderPath"].getValue())
-        all_products = get_products(project_name, folder_path)
-
-        product_types = list(set(
-            product['productType'] for product in all_products))
+        product_types = get_product_types(project_name, folder_path)
 
         for i, p_type in enumerate(product_types):
             self.register_plug_presetes(self["productType"], p_type, p_type)
@@ -182,10 +184,12 @@ class ProductReader(GafferScene.SceneNode):
 
         # Set product names
         product_type = eval_str(self["productType"].getValue())
-        products = [i for i in all_products if
-                    i['productType'] == product_type]
+        pproduct_names = get_product_names(
+            project_name,
+            folder_path,
+            product_type)
 
-        for i, product in enumerate(products):
+        for i, product in enumerate(pproduct_names):
             self.register_plug_presetes(
                 self["productName"],
                 product["name"],
@@ -223,6 +227,15 @@ class ProductReader(GafferScene.SceneNode):
             if i == 0:
                 select_preset(self["respresentation"],
                               repr["files"][0]["name"])
+
+        # Set project roots
+        project_roots = get_project_roots(project_name)
+
+        for i, (key, value) in enumerate(project_roots.items()):
+            self.register_plug_presetes(self["projectRoot"], key, value)
+
+            if i == 0:
+                select_preset(self["projectRoot"], key)
 
         # Set resolved path
         resolved_path = ast.literal_eval(

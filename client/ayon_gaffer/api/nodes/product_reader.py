@@ -13,7 +13,7 @@ import GafferScene
 
 log = Logger.get_logger(__name__)
 
-def eval_str(value):
+def subs_str(value):
     sub_value = GafferScript.node.context().substitute(value)
 
     if sub_value:
@@ -21,12 +21,12 @@ def eval_str(value):
     else:
         return value
 
-def select_preset(plug, prereload_name):
-    prereload_value = Gaffer.Metadata.value(plug, f"preset:{prereload_name}")
-    if prereload_value is not None:
-        plug.setValue(prereload_value)
+def select_preset(plug, preset):
+    preset_value = Gaffer.Metadata.value(plug, f"preset:{preset}")
+    if preset_value is not None:
+        plug.setValue(preset_value)
     else:
-        log.error(f"Preset '{prereload_name}' not found!")
+        log.error(f"Preset '{preset}' not found!")
 
 def get_project_names():
     return ayon_api.get_project_names()
@@ -246,9 +246,9 @@ class ProductReader(GafferScene.SceneNode):
         self["folderPath"].setValue(self.ayon_folder_path)
 
     def reload_product_types(self):
-        project_name = eval_str(self["projectName"].getValue())
+        project_name = subs_str(self["projectName"].getValue())
 
-        folder_path = eval_str(self["folderPath"].getValue())
+        folder_path = subs_str(self["folderPath"].getValue())
         product_types = get_product_types(project_name, folder_path)
 
         if product_types:
@@ -261,9 +261,9 @@ class ProductReader(GafferScene.SceneNode):
                 select_preset(self["productType"], p_type)
 
     def reload_product_names(self):
-        project_name = eval_str(self["projectName"].getValue())
-        folder_path = eval_str(self["folderPath"].getValue())
-        product_type = eval_str(self["productType"].getValue())
+        project_name = subs_str(self["projectName"].getValue())
+        folder_path = subs_str(self["folderPath"].getValue())
+        product_type = subs_str(self["productType"].getValue())
 
         product_names = get_product_names(
             project_name,
@@ -283,7 +283,7 @@ class ProductReader(GafferScene.SceneNode):
                 select_preset(self["productName"], product["name"])
 
     def reload_product_versions(self):
-        project_name = eval_str(self["projectName"].getValue())
+        project_name = subs_str(self["projectName"].getValue())
         product_id = ast.literal_eval(self["productName"].getValue())["id"]
         versions = get_product_versions(project_name, product_id)
 
@@ -306,7 +306,7 @@ class ProductReader(GafferScene.SceneNode):
                               f"{version['name']} ({version['status']})")
 
     def reload_representations(self):
-        project_name = eval_str(self["projectName"].getValue())
+        project_name = subs_str(self["projectName"].getValue())
         version_id = ast.literal_eval(self["productVersion"].getValue())["id"]
         representations = get_representations(
             project_name,
@@ -328,7 +328,7 @@ class ProductReader(GafferScene.SceneNode):
     def reload_project_roots(self):
         self.deregister_plug_presetes(self["projectRoot"])
 
-        project_name = eval_str(self["projectName"].getValue())
+        project_name = subs_str(self["projectName"].getValue())
         project_roots = get_project_roots(project_name)
 
         for i, (key, value) in enumerate(project_roots.items()):

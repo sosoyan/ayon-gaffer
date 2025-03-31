@@ -90,7 +90,7 @@ def version_picker(status):
 
 class ProductReaderSerialiser(Gaffer.NodeSerialiser):
     """
-    Ayon Reader Serializer
+    Product Reader Serializer
     """
     def childNeedsSerialisation(self, child, serialisation):
         """

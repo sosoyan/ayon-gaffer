@@ -92,26 +92,40 @@ class SceneReader(GafferScene.SceneNode):
 
         self.current = "current"
 
-        self.addChild(Gaffer.IntPlug("reload",
+        self.addChild(Gaffer.IntPlug("reloadAll",
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
                                         self.current))
+        self.addChild(Gaffer.IntPlug("reloadProjectName",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("folderPath",
                                         Gaffer.Plug.Direction.In,
                                         self.current))
+        self.addChild(Gaffer.IntPlug("reloadFolderPath",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("folderPathCustom",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productType",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadProductType",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productName",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadProductName",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productVersion",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadProductVersion",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("representation",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadRepresentation",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectRoot",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadProjectRoot",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("filePath",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("refreshCount",
@@ -135,7 +149,8 @@ class SceneReader(GafferScene.SceneNode):
         self.reload_all()
 
     def plug_set(self, plug):
-        if(plug.getName() == "projectName"):
+        if(plug.getName() == "projectName" or
+           plug.getName() == "reloadProjectName"):
             self.reload_product_types()
             self.reload_product_names()
             self.reload_product_versions()
@@ -143,7 +158,8 @@ class SceneReader(GafferScene.SceneNode):
             self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "folderPath"):
+        elif(plug.getName() == "folderPath" or
+             plug.getName() == "reloadFolderPath"):
             self.reload_product_types()
             self.reload_product_names()
             self.reload_product_versions()
@@ -151,28 +167,37 @@ class SceneReader(GafferScene.SceneNode):
             self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "productType"):
+        elif(plug.getName() == "productType" or
+             plug.getName() == "reloadProductType"):
             self.reload_product_names()
             self.reload_product_versions()
             self.reload_representations()
             self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "productName"):
+        elif(plug.getName() == "productName" or
+             plug.getName() == "reloadProductName"):
             self.reload_product_versions()
             self.reload_representations()
             self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "productVersion"):
+        elif(plug.getName() == "productVersion" or
+             plug.getName() == "reloadProductVersion"):
             self.reload_representations()
             self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "representation"):
+        elif(plug.getName() == "representation" or
+             plug.getName() == "reloadRepresentation"):
+            self.reload_project_roots()
             self.reload_resolved_path()
 
-        elif(plug.getName() == "reload"):
+        elif(plug.getName() == "projectRoot" or
+             plug.getName() == "reloadProjectRoot"):
+            self.reload_resolved_path()
+
+        elif(plug.getName() == "reloadAll"):
             self.reload_all()
 
     def register_plug_presetes(self, plug, name, value):
@@ -207,7 +232,7 @@ class SceneReader(GafferScene.SceneNode):
                 self["folderPathCustom"],
                 "plugValueWidget:type",
                 "GafferUI.StringPlugValueWidget"
-                "label", "Custom")
+                "label", "ustom")
 
         return self["folderPathCustom"].getValue()
 
@@ -347,29 +372,64 @@ Gaffer.Metadata.registerNode(
     "graphEditor:childrenViewable", True,
     "icon", GAFFER_HOST_DIR + "/icons/ayon-logo.png",
     plugs={
-        "reload": [
+        "reloadAll": [
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
 
          "projectName": [
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+        "reloadProjectName": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
+
          "folderPath": [
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+
+        "reloadFolderPath": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
 
         "productType": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+        "reloadProductType": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
+
         "productName": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+
+        "reloadProductName": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
 
         "productVersion": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+        "reloadProductVersion": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
+
         "representation": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+        "reloadRepresentation": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
+
         "projectRoot": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+
+        "reloadProjectRoot": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
 
         "refreshCount": [
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",

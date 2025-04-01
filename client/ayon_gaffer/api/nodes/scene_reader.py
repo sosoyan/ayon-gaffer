@@ -5,9 +5,9 @@ from pathlib import Path
 import ayon_api
 
 from ayon_core.lib import Logger
-from ayon_gaffer.api.lib import GafferScript
+from ayon_core.pipeline import (get_current_project_name,
+                                get_current_folder_path)
 
-import imath
 import IECore
 import Gaffer
 import GafferScene
@@ -16,15 +16,6 @@ import GafferScene
 log = Logger.get_logger(__name__)
 
 GAFFER_HOST_DIR = Path(__file__).resolve().parents[2].as_posix()
-
-def subs_str(value):
-    if isinstance(GafferScript.node, Gaffer.ScriptNode):
-        sub_value = GafferScript.node.context().substitute(value)
-
-        if sub_value:
-            return sub_value
-
-    return value
 
 def select_preset(plug, preset):
     preset_value = Gaffer.Metadata.value(plug, f"preset:{preset}")
@@ -99,18 +90,18 @@ class SceneReader(GafferScene.SceneNode):
 
         GafferScene.SceneNode.__init__(self, name)
 
-        self.ayon_project_name = "${ayon:projectName}"
-        self.ayon_folder_path = "${ayon:folderPath}"
+        self.current = "current"
 
         self.addChild(Gaffer.IntPlug("reload",
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
-                                        self.ayon_project_name,
-                                        flags=Gaffer.Plug.Flags.Default))
+                                        self.current))
         self.addChild(Gaffer.StringPlug("folderPath",
                                         Gaffer.Plug.Direction.In,
-                                        self.ayon_folder_path))
+                                        self.current))
+        self.addChild(Gaffer.StringPlug("folderPathCustom",
+                                        Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productType",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productName",
@@ -140,7 +131,6 @@ class SceneReader(GafferScene.SceneNode):
         Gaffer.Metadata.registerValue(self["transform"],
                                       "layout:section",
                                       "Transform")
-
         self.reload_all()
 
     def plug_set(self, plug):
@@ -194,6 +184,32 @@ class SceneReader(GafferScene.SceneNode):
             if key.startswith("preset:"):
                 Gaffer.Metadata.deregisterValue(plug, key)
 
+    def get_project_name(self):
+        project_name = self["projectName"].getValue()
+
+        if (project_name == self.current):
+            return get_current_project_name()
+
+        return project_name
+
+    def get_folder_path(self):
+        folder_path = self["folderPath"].getValue()
+
+        if (folder_path == self.current):
+            Gaffer.Metadata.registerValue(
+                self["folderPathCustom"],
+                "plugValueWidget:type", "")
+
+            return get_current_folder_path()
+
+        Gaffer.Metadata.registerValue(
+                self["folderPathCustom"],
+                "plugValueWidget:type",
+                "GafferUI.StringPlugValueWidget"
+                "label", "Custom")
+
+        return self["folderPathCustom"].getValue()
+
     def reload_all(self):
         self.reload_project_names()
         self.reload_folder_path()
@@ -207,21 +223,25 @@ class SceneReader(GafferScene.SceneNode):
     def reload_project_names(self):
         self.deregister_plug_presetes(self["projectName"])
 
-        project_names = [self.ayon_project_name] + get_project_names()
+        project_names = [self.current] + get_project_names()
 
         for name in project_names:
             self.register_plug_presetes(self["projectName"], name, name)
 
-        select_preset(self["projectName"], self.ayon_project_name)
+        select_preset(self["projectName"], self.current)
 
     def reload_folder_path(self):
-        self["folderPath"].setValue(self.ayon_folder_path)
+        self["folderPath"].setValue(self.current)
+
+        for preset in [self.current, "custom"]:
+            self.register_plug_presetes(self["folderPath"], preset, preset)
+
+        select_preset(self["folderPath"], self.current)
 
     def reload_product_types(self):
-        project_name = subs_str(self["projectName"].getValue())
-
-        folder_path = subs_str(self["folderPath"].getValue())
-        product_types = get_product_types(project_name, folder_path)
+        product_types = get_product_types(
+            self.get_project_name(),
+            self.get_folder_path())
 
         if product_types:
             self.deregister_plug_presetes(self["productType"])
@@ -237,14 +257,10 @@ class SceneReader(GafferScene.SceneNode):
                 select_preset(self["productType"], p_type)
 
     def reload_product_names(self):
-        project_name = subs_str(self["projectName"].getValue())
-        folder_path = subs_str(self["folderPath"].getValue())
-        product_type = subs_str(self["productType"].getValue())
-
         product_names = get_product_names(
-            project_name,
-            folder_path,
-            product_type)
+            self.get_project_name(),
+            self.get_folder_path(),
+            self["productType"].getValue())
 
         if product_names:
             self.deregister_plug_presetes(self["productName"])
@@ -259,9 +275,8 @@ class SceneReader(GafferScene.SceneNode):
                 select_preset(self["productName"], product["name"])
 
     def reload_product_versions(self):
-        project_name = subs_str(self["projectName"].getValue())
         product_id = ast.literal_eval(self["productName"].getValue())["id"]
-        versions = get_product_versions(project_name, product_id)
+        versions = get_product_versions(self.get_project_name(), product_id)
 
         if versions:
             self.deregister_plug_presetes(self["productVersion"])
@@ -282,10 +297,9 @@ class SceneReader(GafferScene.SceneNode):
                               f"{version['name']} ({version['status']})")
 
     def reload_representations(self):
-        project_name = subs_str(self["projectName"].getValue())
         version_id = ast.literal_eval(self["productVersion"].getValue())["id"]
         representations = get_representations(
-            project_name,
+            self.get_project_name(),
             version_id)
 
         if representations:
@@ -304,8 +318,7 @@ class SceneReader(GafferScene.SceneNode):
     def reload_project_roots(self):
         self.deregister_plug_presetes(self["projectRoot"])
 
-        project_name = subs_str(self["projectName"].getValue())
-        project_roots = get_project_roots(project_name)
+        project_roots = get_project_roots(self.get_project_name())
 
         for i, (key, value) in enumerate(project_roots.items()):
             self.register_plug_presetes(self["projectRoot"], key, value)
@@ -333,11 +346,14 @@ Gaffer.Metadata.registerNode(
     "graphEditor:childrenViewable", True,
     "icon", GAFFER_HOST_DIR + "/icons/ayon-logo.png",
     plugs={
+        "reload": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
+
          "projectName": [
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
-        "projectRoot": [
-            "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+         "folderPath": [
+             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "productType": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
@@ -351,11 +367,12 @@ Gaffer.Metadata.registerNode(
         "representation": [
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+        "projectRoot": [
+            "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+
         "refreshCount": [
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
-        "reload": [
-            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
         }
     )

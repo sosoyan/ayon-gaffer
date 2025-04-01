@@ -119,6 +119,7 @@ class SceneReader(GafferScene.SceneNode):
 
         self.addChild(Gaffer.TransformPlug("transform",
                                            Gaffer.Plug.Direction.In))
+
         if "sceneReader" not in self.keys():
             self["sceneReader"] = GafferScene.SceneReader()
             self["sceneReader"]["fileName"].setInput(self["filePath"])

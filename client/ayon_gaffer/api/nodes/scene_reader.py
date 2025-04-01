@@ -1,11 +1,13 @@
-
 import ast
 import platform
+from pathlib import Path
+
 import ayon_api
 
 from ayon_core.lib import Logger
 from ayon_gaffer.api.lib import GafferScript
 
+import imath
 import IECore
 import Gaffer
 import GafferScene
@@ -13,13 +15,16 @@ import GafferScene
 
 log = Logger.get_logger(__name__)
 
-def subs_str(value):
-    sub_value = GafferScript.node.context().substitute(value)
+GAFFER_HOST_DIR = Path(__file__).resolve().parents[2].as_posix()
 
-    if sub_value:
-        return sub_value
-    else:
-        return value
+def subs_str(value):
+    if isinstance(GafferScript.node, Gaffer.ScriptNode):
+        sub_value = GafferScript.node.context().substitute(value)
+
+        if sub_value:
+            return sub_value
+
+    return value
 
 def select_preset(plug, preset):
     preset_value = Gaffer.Metadata.value(plug, f"preset:{preset}")
@@ -46,7 +51,7 @@ def get_products(project_name, folder_path):
         return products
     else:
         log.error(
-            f"Can't get any products at '{project_name}{folder_path}'")
+            f"Can't get any product at '{project_name}{folder_path}'")
 
     return []
 
@@ -88,41 +93,9 @@ def version_picker(status):
 
     return status_priority.get(status, 0)
 
-class ProductReaderSerialiser(Gaffer.NodeSerialiser):
-    """
-    Product Reader Serializer
-    """
-    def childNeedsSerialisation(self, child, serialisation):
-        """
-        Implementation of native method
-        @param child: Reader
-        @param serialisation: Gaffer.Serialisation
-        @return: 
-        """
-        if isinstance(child, Gaffer.Node):
-            return True
+class SceneReader(GafferScene.SceneNode):
 
-        return Gaffer.NodeSerialiser.childNeedsSerialisation(self,
-                                                             child,
-                                                             serialisation)
-
-    def childNeedsConstruction(self, child, serialisation):
-        """
-        Implementation of native method
-        @param child: ProductReader
-        @param serialisation: Gaffer.Serialisation
-        @return:
-        """
-        if isinstance(child, Gaffer.Node):
-            return True
-
-        return Gaffer.NodeSerialiser.childNeedsConstruction(self,
-                                                            child,
-                                                            serialisation)
-
-class ProductReader(GafferScene.SceneNode):
-
-    def __init__(self, name="ProductReader"):
+    def __init__(self, name="SceneReader"):
 
         GafferScene.SceneNode.__init__(self, name)
 
@@ -133,7 +106,8 @@ class ProductReader(GafferScene.SceneNode):
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
-                                        self.ayon_project_name))
+                                        self.ayon_project_name,
+                                        flags=Gaffer.Plug.Flags.Default))
         self.addChild(Gaffer.StringPlug("folderPath",
                                         Gaffer.Plug.Direction.In,
                                         self.ayon_folder_path))
@@ -154,14 +128,13 @@ class ProductReader(GafferScene.SceneNode):
 
         self.addChild(Gaffer.TransformPlug("transform",
                                            Gaffer.Plug.Direction.In))
-
-        self["sceneReader"] = GafferScene.SceneReader()
-        self["sceneReader"]["fileName"].setInput(self["filePath"])
-        self["sceneReader"]['refreshCount'].setInput(self["refreshCount"])
-        self["sceneReader"]["transform"].setInput(self["transform"])
+        if "sceneReader" not in self.keys():
+            self["sceneReader"] = GafferScene.SceneReader()
+            self["sceneReader"]["fileName"].setInput(self["filePath"])
+            self["sceneReader"]['refreshCount'].setInput(self["refreshCount"])
+            self["sceneReader"]["transform"].setInput(self["transform"])
 
         self["out"].setInput(self["sceneReader"]["out"])
-
         self.plugSetSignal().connect(self.plug_set, scoped=False)
 
         Gaffer.Metadata.registerValue(self["transform"],
@@ -209,7 +182,6 @@ class ProductReader(GafferScene.SceneNode):
             self.reload_resolved_path()
 
         elif(plug.getName() == "reload"):
-
             self.reload_all()
 
     def register_plug_presetes(self, plug, name, value):
@@ -255,7 +227,11 @@ class ProductReader(GafferScene.SceneNode):
             self.deregister_plug_presetes(self["productType"])
 
         for i, p_type in enumerate(product_types):
-            self.register_plug_presetes(self["productType"], p_type, p_type)
+
+            self.register_plug_presetes(
+                self["productType"],
+                p_type,
+                p_type)
 
             if i == 0:
                 select_preset(self["productType"], p_type)
@@ -349,12 +325,13 @@ class ProductReader(GafferScene.SceneNode):
 
             self["filePath"].setValue(resolved_path)
 
-IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
+IECore.registerRunTimeTyped(SceneReader, typeName="AyonSceneReader")
 
 Gaffer.Metadata.registerNode(
-    ProductReader,
+    SceneReader,
     "description", "Ayon Product Reader",
     "graphEditor:childrenViewable", True,
+    "icon", GAFFER_HOST_DIR + "/icons/ayon-logo.png",
     plugs={
          "projectName": [
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
@@ -379,9 +356,6 @@ Gaffer.Metadata.registerNode(
             "layout:label", "",
             "layout:accessory", True],
         "reload": [
-            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"]
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
         }
     )
-
-Gaffer.Serialisation.registerSerialiser(ProductReader,
-                                        ProductReaderSerialiser())

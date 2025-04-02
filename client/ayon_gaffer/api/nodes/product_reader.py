@@ -476,7 +476,9 @@ Gaffer.Metadata.registerNode(
             "layout:accessory", True],
 
         "fileName": [
-            "nodule:type", ""],
+            "nodule:type", "",
+            "plugValueWidget:type", "GafferUI.FileSystemPathPlugValueWidget"
+            ],
 
         "refreshCount": [
             "nodule:type", "",

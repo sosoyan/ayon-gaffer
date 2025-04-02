@@ -29,7 +29,7 @@ class ImageReader(ProductReader):
         Gaffer.Metadata.registerValue(
             self["availableFrames"],
             "layout:section",
-            "Transform")
+            "Frames")
         Gaffer.Metadata.registerValue(
             self["fileValid"],
             "layout:section",

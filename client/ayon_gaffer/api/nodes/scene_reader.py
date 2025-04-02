@@ -3,6 +3,7 @@ import platform
 from pathlib import Path
 
 import ayon_api
+import ayon_api.exceptions
 
 from ayon_core.lib import Logger
 from ayon_core.pipeline import (get_current_project_name,
@@ -33,16 +34,14 @@ def get_project_roots(project_name):
         platform.system().lower())
 
 def get_products(project_name, folder_path):
-    folder = ayon_api.get_folder_by_path(project_name, folder_path)
+    try:
+        folder = ayon_api.get_folder_by_path(project_name, folder_path)
+    except ayon_api.exceptions.GraphQlQueryFailed:
+        pass
 
     if folder is not None:
         folder_id = folder.get("id")
-        products = ayon_api.get_products(project_name, folder_ids=[folder_id])
-
-        return products
-    else:
-        log.error(
-            f"Can't get any product at '{project_name}{folder_path}'")
+        return ayon_api.get_products(project_name, folder_ids=[folder_id])
 
     return []
 
@@ -51,12 +50,18 @@ def get_product_types(project_name, folder_path):
     product_types = list(set(
         product['productType'] for product in list(products)))
 
+    if not product_types:
+        log.error(f"Can't get product types at '{project_name}{folder_path}'")
+
     return product_types
 
 def get_product_names(project_name, folder_path, product_type):
     products = get_products(project_name, folder_path)
     product_names = [i for i in products if
                     i['productType'] == product_type]
+
+    if not product_names:
+        log.error(f"Can't get product names at '{project_name}{folder_path}'")
 
     return product_names
 
@@ -91,6 +96,7 @@ class SceneReader(GafferScene.SceneNode):
         GafferScene.SceneNode.__init__(self, name)
 
         self.current = "current"
+        self.custom = "custom"
 
         self.addChild(Gaffer.IntPlug("reloadAll",
                                      Gaffer.Plug.Direction.In))
@@ -106,6 +112,8 @@ class SceneReader(GafferScene.SceneNode):
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("folderPathCustom",
                                         Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.IntPlug("reloadFolderPathCustom",
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("productType",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("reloadProductType",
@@ -143,6 +151,10 @@ class SceneReader(GafferScene.SceneNode):
         self["out"].setInput(self["sceneReader"]["out"])
         self.plugSetSignal().connect(self.plug_set, scoped=False)
 
+        Gaffer.Metadata.registerValue(
+            self["folderPathCustom"],
+            "label",
+            "Custom")
         Gaffer.Metadata.registerValue(self["transform"],
                                       "layout:section",
                                       "Transform")
@@ -151,21 +163,30 @@ class SceneReader(GafferScene.SceneNode):
     def plug_set(self, plug):
         if(plug.getName() == "projectName" or
            plug.getName() == "reloadProjectName"):
-            self.reload_product_types()
-            self.reload_product_names()
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
+            if self.reload_product_types():
+                self.reload_product_names()
+                self.reload_product_versions()
+                self.reload_representations()
+                self.reload_project_roots()
+                self.reload_resolved_path()
 
         elif(plug.getName() == "folderPath" or
              plug.getName() == "reloadFolderPath"):
-            self.reload_product_types()
-            self.reload_product_names()
-            self.reload_product_versions()
-            self.reload_representations()
-            self.reload_project_roots()
-            self.reload_resolved_path()
+            if self.reload_product_types():
+                self.reload_product_names()
+                self.reload_product_versions()
+                self.reload_representations()
+                self.reload_project_roots()
+                self.reload_resolved_path()
+
+        elif(plug.getName() == "folderPathCustom" or
+             plug.getName() == "reloadFolderPathCustom"):
+            if self.reload_product_types():
+                self.reload_product_names()
+                self.reload_product_versions()
+                self.reload_representations()
+                self.reload_project_roots()
+                self.reload_resolved_path()
 
         elif(plug.getName() == "productType" or
              plug.getName() == "reloadProductType"):
@@ -200,7 +221,7 @@ class SceneReader(GafferScene.SceneNode):
         elif(plug.getName() == "reloadAll"):
             self.reload_all()
 
-    def register_plug_presetes(self, plug, name, value):
+    def register_plug_preset(self, plug, name, value):
         Gaffer.Metadata.registerPlugValue(plug, "preset:" + name, value)
 
     def deregister_plug_presetes(self, plug):
@@ -231,8 +252,7 @@ class SceneReader(GafferScene.SceneNode):
         Gaffer.Metadata.registerValue(
                 self["folderPathCustom"],
                 "plugValueWidget:type",
-                "GafferUI.StringPlugValueWidget"
-                "label", "ustom")
+                "GafferUI.StringPlugValueWidget")
 
         return self["folderPathCustom"].getValue()
 
@@ -252,15 +272,15 @@ class SceneReader(GafferScene.SceneNode):
         project_names = [self.current] + get_project_names()
 
         for name in project_names:
-            self.register_plug_presetes(self["projectName"], name, name)
+            self.register_plug_preset(self["projectName"], name, name)
 
         select_preset(self["projectName"], self.current)
 
     def reload_folder_path(self):
         self["folderPath"].setValue(self.current)
 
-        for preset in [self.current, "custom"]:
-            self.register_plug_presetes(self["folderPath"], preset, preset)
+        for preset in [self.current, self.custom]:
+            self.register_plug_preset(self["folderPath"], preset, preset)
 
         select_preset(self["folderPath"], self.current)
 
@@ -274,13 +294,15 @@ class SceneReader(GafferScene.SceneNode):
 
         for i, p_type in enumerate(product_types):
 
-            self.register_plug_presetes(
+            self.register_plug_preset(
                 self["productType"],
                 p_type,
                 p_type)
 
             if i == 0:
                 select_preset(self["productType"], p_type)
+
+        return product_types
 
     def reload_product_names(self):
         product_names = get_product_names(
@@ -292,7 +314,7 @@ class SceneReader(GafferScene.SceneNode):
             self.deregister_plug_presetes(self["productName"])
 
         for i, product in enumerate(product_names):
-            self.register_plug_presetes(
+            self.register_plug_preset(
                 self["productName"],
                 product["name"],
                 str(product))
@@ -310,7 +332,7 @@ class SceneReader(GafferScene.SceneNode):
         picked_status = 0
 
         for version in versions:
-            self.register_plug_presetes(
+            self.register_plug_preset(
                 self["productVersion"],
                 f"{version['name']} ({version['status']})",
                 str(version))
@@ -332,7 +354,7 @@ class SceneReader(GafferScene.SceneNode):
             self.deregister_plug_presetes(self["representation"])
 
         for i, repr in enumerate(representations):
-            self.register_plug_presetes(
+            self.register_plug_preset(
                 self["representation"],
                 repr["files"][0]["name"],
                 str(repr["files"][0]))
@@ -347,7 +369,7 @@ class SceneReader(GafferScene.SceneNode):
         project_roots = get_project_roots(self.get_project_name())
 
         for i, (key, value) in enumerate(project_roots.items()):
-            self.register_plug_presetes(self["projectRoot"], key, value)
+            self.register_plug_preset(self["projectRoot"], key, value)
 
             if i == 0:
                 select_preset(self["projectRoot"], key)
@@ -387,6 +409,11 @@ Gaffer.Metadata.registerNode(
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadFolderPath": [
+            "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
+            "layout:label", "",
+            "layout:accessory", True],
+
+        "reloadFolderPathCustom": [
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],

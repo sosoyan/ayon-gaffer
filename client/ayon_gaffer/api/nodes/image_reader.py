@@ -18,6 +18,23 @@ class ImageReader(ProductReader):
             self["ImageReader"]["fileName"].setInput(self["fileName"])
             self["ImageReader"]['refreshCount'].setInput(self["refreshCount"])
 
+        self.promotePlug(self["ImageReader"]["missingFrameMode"])
+        self.promotePlug(self["ImageReader"]["start"])
+        self.promotePlug(self["ImageReader"]["end"])
+        self.promotePlug(self["ImageReader"]["colorSpace"])
+        self.promotePlug(self["ImageReader"]["channelInterpretation"])
+        self.promotePlug(self["ImageReader"]["availableFrames"])
+        self.promotePlug(self["ImageReader"]["fileValid"])
+
+        Gaffer.Metadata.registerValue(
+            self["availableFrames"],
+            "layout:section",
+            "Transform")
+        Gaffer.Metadata.registerValue(
+            self["fileValid"],
+            "layout:section",
+            "Frames")
+
         self["out"].setInput(self["ImageReader"]["out"])
 
 IECore.registerRunTimeTyped(ImageReader, typeName="AyonImageReader")

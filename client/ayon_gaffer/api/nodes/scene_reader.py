@@ -11,15 +11,17 @@ class SceneReader(ProductReader):
 
         ProductReader.__init__(self, name)
 
+        self.addChild(GafferScene.ScenePlug("out", Gaffer.Plug.Direction.Out))
         self.addChild(Gaffer.TransformPlug("transform",
                                            Gaffer.Plug.Direction.In))
 
-        if "sceneReader" not in self.keys():
-            self["sceneReader"] = GafferScene.SceneReader()
-            self["sceneReader"]["fileName"].setInput(self["filePath"])
-            self["sceneReader"]['refreshCount'].setInput(self["refreshCount"])
-            self["sceneReader"]["transform"].setInput(self["transform"])
-            self["out"].setInput(self["sceneReader"]["out"])
+        if "SceneReader" not in self.keys():
+            self["SceneReader"] = GafferScene.SceneReader()
+            self["SceneReader"]["fileName"].setInput(self["fileName"])
+            self["SceneReader"]['refreshCount'].setInput(self["refreshCount"])
+            self["SceneReader"]["transform"].setInput(self["transform"])
+
+        self["out"].setInput(self["SceneReader"]["out"])
 
         Gaffer.Metadata.registerValue(self["transform"],
                                       "layout:section",
@@ -27,3 +29,12 @@ class SceneReader(ProductReader):
 
 
 IECore.registerRunTimeTyped(SceneReader, typeName="AyonSceneReader")
+
+Gaffer.Metadata.registerNode(
+    SceneReader,
+    "description", "Ayon Scene Reader",
+    plugs={
+        "transform": [
+            "nodule:type", ""],
+    }
+)

@@ -9,9 +9,9 @@ from ayon_core.lib import Logger
 from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path)
 
+import imath
 import Gaffer
 import IECore
-import GafferScene
 
 
 log = Logger.get_logger(__name__)
@@ -89,11 +89,11 @@ def version_picker(status):
 
     return status_priority.get(status, 0)
 
-class ProductReader(GafferScene.SceneNode):
+class ProductReader(Gaffer.Box):
 
     def __init__(self, name="ProductReader"):
 
-        GafferScene.SceneNode.__init__(self, name)
+        Gaffer.Box.__init__(self, name)
 
         self.current = "current"
         self.custom = "custom"
@@ -134,7 +134,7 @@ class ProductReader(GafferScene.SceneNode):
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("reloadProjectRoot",
                                      Gaffer.Plug.Direction.In)),
-        self.addChild(Gaffer.StringPlug("filePath",
+        self.addChild(Gaffer.StringPlug("fileName",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("refreshCount",
                                      Gaffer.Plug.Direction.In))
@@ -377,7 +377,7 @@ class ProductReader(GafferScene.SceneNode):
             root = self["projectRoot"].getValue()
             resolved_path = path[:start] + root + path[end + 1:]
 
-            self["filePath"].setValue(resolved_path)
+            self["fileName"].setValue(resolved_path)
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
@@ -386,72 +386,100 @@ Gaffer.Metadata.registerNode(
     "description", "Ayon Product Reader",
     "graphEditor:childrenViewable", True,
     "icon", GAFFER_HOST_DIR + "/icons/ayon-logo.png",
+    "nodeGadget:color", imath.Color3f(0.4, 0.4, 0.4),
+    "noduleLayout:customGadget:addButtonTop:visible", False,
+    "noduleLayout:customGadget:addButtonBottom:visible", False,
+    "noduleLayout:customGadget:addButtonLeft:visible", False,
+    "noduleLayout:customGadget:addButtonRight:visible", False,
     plugs={
         "reloadAll": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
 
          "projectName": [
+            "nodule:type", "",
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProjectName": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
          "folderPath": [
+            "nodule:type", "",
              "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
+         "folderPathCustom": [
+            "nodule:type", ""],
+
         "reloadFolderPath": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "reloadFolderPathCustom": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "productType": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProductType": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "productName": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProductName": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "productVersion": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProductVersion": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "representation": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadRepresentation": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
         "projectRoot": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProjectRoot": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True],
 
+        "fileName": [
+            "nodule:type", ""],
+
         "refreshCount": [
+            "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget",
             "layout:label", "",
             "layout:accessory", True]

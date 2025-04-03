@@ -379,6 +379,18 @@ class ProductReader(Gaffer.Box):
 
             self["fileName"].setValue(resolved_path)
 
+class ProductReaderSerialiser(Gaffer.NodeSerialiser):
+
+    def childNeedsSerialisation(self, child, serialisation):
+
+        if isinstance(child, Gaffer.Node):
+            return False
+
+        return Gaffer.NodeSerialiser.childNeedsSerialisation(
+            self,
+            child,
+            serialisation)
+
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
 Gaffer.Metadata.registerNode(
@@ -487,3 +499,7 @@ Gaffer.Metadata.registerNode(
             "layout:accessory", True]
         }
     )
+
+Gaffer.Serialisation.registerSerialiser(
+    ProductReader,
+    ProductReaderSerialiser())

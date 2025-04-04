@@ -13,10 +13,9 @@ class ImageReader(ProductReader):
 
         self.addChild(GafferImage.ImagePlug("out", Gaffer.Plug.Direction.Out))
 
-        if "ImageReader" not in self.keys():
-            self["ImageReader"] = GafferImage.ImageReader()
-            self["ImageReader"]["fileName"].setInput(self["fileName"])
-            self["ImageReader"]['refreshCount'].setInput(self["refreshCount"])
+        self["ImageReader"] = GafferImage.ImageReader()
+        self["ImageReader"]["fileName"].setInput(self["fileName"])
+        self["ImageReader"]['refreshCount'].setInput(self["refreshCount"])
 
         self.promotePlug(self["ImageReader"]["missingFrameMode"])
         self.promotePlug(self["ImageReader"]["start"])

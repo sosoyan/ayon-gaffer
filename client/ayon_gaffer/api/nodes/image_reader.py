@@ -26,6 +26,9 @@ class ImageReader(ProductReader):
         self.promotePlug(self["ImageReader"]["availableFrames"])
         self.promotePlug(self["ImageReader"]["fileValid"])
 
+        for plug in self.children(Gaffer.Plug):
+            plug.setFlags(Gaffer.Plug.Flags.Default)
+
         Gaffer.Metadata.registerValue(
             self["availableFrames"],
             "layout:section",

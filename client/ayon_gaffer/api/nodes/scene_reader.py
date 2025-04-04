@@ -11,13 +11,16 @@ class SceneReader(ProductReader):
 
         ProductReader.__init__(self, name)
 
-        self.addChild(Gaffer.TransformPlug("transform"))
         self.addChild(GafferScene.ScenePlug("out", Gaffer.Plug.Direction.Out))
 
         self["SceneReader"] = GafferScene.SceneReader()
         self["SceneReader"]["fileName"].setInput(self["fileName"])
         self["SceneReader"]["refreshCount"].setInput(self["refreshCount"])
-        self["SceneReader"]["transform"].setInput(self["transform"])
+
+        self.promotePlug(self["SceneReader"]["transform"])
+
+        for plug in self.children(Gaffer.Plug):
+            plug.setFlags(Gaffer.Plug.Flags.Default)
 
         self["out"].setInput(self["SceneReader"]["out"])
 

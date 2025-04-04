@@ -29,8 +29,6 @@ IECore.registerRunTimeTyped(SceneReader, typeName="AyonSceneReader")
 Gaffer.Metadata.registerNode(
     SceneReader,
     plugs={
-        "transform": [
-            "nodule:type", "",
-            "layout:section", "Transform"]
+        "transform": ["layout:section", "Transform"]
     }
 )

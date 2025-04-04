@@ -28,15 +28,14 @@ class ImageReader(ProductReader):
         for plug in self.children(Gaffer.Plug):
             plug.setFlags(Gaffer.Plug.Flags.Default)
 
-        Gaffer.Metadata.registerValue(
-            self["availableFrames"],
-            "layout:section",
-            "Frames")
-        Gaffer.Metadata.registerValue(
-            self["fileValid"],
-            "layout:section",
-            "Frames")
-
         self["out"].setInput(self["ImageReader"]["out"])
 
 IECore.registerRunTimeTyped(ImageReader, typeName="AyonImageReader")
+
+Gaffer.Metadata.registerNode(
+    ImageReader,
+    plugs={
+        "availableFrames": ["layout:section", "Frames"],
+        "fileValid": ["layout:section", "Frames"]
+    }
+)

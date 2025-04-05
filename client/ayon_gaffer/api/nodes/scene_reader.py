@@ -30,6 +30,7 @@ class SceneReader(ProductReader):
                             "layout",
                             "animation",
                             "fx"]
+
         super().reload_product_types()
 
 class SceneReaderSerialiser(Gaffer.NodeSerialiser):

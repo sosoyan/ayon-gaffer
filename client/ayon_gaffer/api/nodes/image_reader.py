@@ -30,6 +30,24 @@ class ImageReader(ProductReader):
 
         self["out"].setInput(self["ImageReader"]["out"])
 
+    def reload_product_types(self):
+        self.type_filter = ["image",
+                            "render"]
+
+        super().reload_product_types()
+
+class ImageReaderSerialiser(Gaffer.NodeSerialiser):
+
+    def childNeedsSerialisation(self, child, serialisation):
+
+        if isinstance(child, Gaffer.Node):
+            return False
+
+        return Gaffer.NodeSerialiser.childNeedsSerialisation(
+            self,
+            child,
+            serialisation)
+
 IECore.registerRunTimeTyped(ImageReader, typeName="AyonImageReader")
 
 Gaffer.Metadata.registerNode(
@@ -38,4 +56,9 @@ Gaffer.Metadata.registerNode(
         "availableFrames": ["layout:section", "Frames"],
         "fileValid": ["layout:section", "Frames"]
     }
+)
+
+Gaffer.Serialisation.registerSerialiser(
+    ProductReader,
+    ImageReaderSerialiser()
 )

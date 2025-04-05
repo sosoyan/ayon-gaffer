@@ -24,6 +24,26 @@ class SceneReader(ProductReader):
 
         self["out"].setInput(self["SceneReader"]["out"])
 
+    def reload_product_types(self):
+        self.type_filter = ["model",
+                            "camera",
+                            "layout",
+                            "animation",
+                            "fx"]
+        super().reload_product_types()
+
+class SceneReaderSerialiser(Gaffer.NodeSerialiser):
+
+    def childNeedsSerialisation(self, child, serialisation):
+
+        if isinstance(child, Gaffer.Node):
+            return False
+
+        return Gaffer.NodeSerialiser.childNeedsSerialisation(
+            self,
+            child,
+            serialisation)
+
 IECore.registerRunTimeTyped(SceneReader, typeName="AyonSceneReader")
 
 Gaffer.Metadata.registerNode(
@@ -32,3 +52,11 @@ Gaffer.Metadata.registerNode(
         "transform": ["layout:section", "Transform"]
     }
 )
+
+Gaffer.Serialisation.registerSerialiser(
+    ProductReader,
+    SceneReaderSerialiser()
+)
+
+
+

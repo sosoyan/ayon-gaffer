@@ -97,6 +97,7 @@ class ProductReader(Gaffer.Box):
 
         self.current = "current"
         self.custom = "custom"
+        self.type_filter =[]
 
         self.addChild(Gaffer.IntPlug("reloadAll",
                                      Gaffer.Plug.Direction.In))
@@ -282,6 +283,9 @@ class ProductReader(Gaffer.Box):
             self.get_project_name(),
             self.get_folder_path())
 
+        if self.type_filter:
+            product_types = [i for i in product_types if i in self.type_filter]
+
         if product_types:
             self.deregister_plug_presetes(self["productType"])
 
@@ -378,18 +382,6 @@ class ProductReader(Gaffer.Box):
             resolved_path = path[:start] + root + path[end + 1:]
 
             self["fileName"].setValue(resolved_path)
-
-class ProductReaderSerialiser(Gaffer.NodeSerialiser):
-
-    def childNeedsSerialisation(self, child, serialisation):
-
-        if isinstance(child, Gaffer.Node):
-            return False
-
-        return Gaffer.NodeSerialiser.childNeedsSerialisation(
-            self,
-            child,
-            serialisation)
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
@@ -499,7 +491,3 @@ Gaffer.Metadata.registerNode(
             "layout:accessory", True]
         }
     )
-
-Gaffer.Serialisation.registerSerialiser(
-    ProductReader,
-    ProductReaderSerialiser())

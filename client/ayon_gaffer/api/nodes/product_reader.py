@@ -67,6 +67,10 @@ def get_product_names(project_name, folder_path, product_type):
 
 def get_product_versions(project_name, product_id):
     versions = ayon_api.get_versions(project_name, product_ids=[product_id])
+
+    if not versions:
+        log.error(f"Can't get product versions for product id: '{product_id}'")
+
     return list(versions)
 
 def get_representations(project_name, version_id):
@@ -141,11 +145,6 @@ class ProductReader(Gaffer.Box):
                                      Gaffer.Plug.Direction.In))
 
         self.plugSetSignal().connect(self.plug_set, scoped=False)
-
-        Gaffer.Metadata.registerValue(
-            self["folderPathCustom"],
-            "label",
-            "Custom")
 
         self.reload_all()
 
@@ -320,50 +319,62 @@ class ProductReader(Gaffer.Box):
                 select_preset(self["productName"], product["name"])
 
     def reload_product_versions(self):
-        product_id = ast.literal_eval(self["productName"].getValue())["id"]
-        versions = get_product_versions(self.get_project_name(), product_id)
+        product_name_value = self["productName"].getValue()
 
-        if versions:
-            self.deregister_plug_presetes(self["productVersion"])
+        if product_name_value:
+            product_id = ast.literal_eval(product_name_value)["id"]
+            versions = get_product_versions(self.get_project_name(), product_id)
 
-        picked_status = 0
+            if versions:
+                self.deregister_plug_presetes(self["productVersion"])
 
-        for version in versions:
-            self.register_plug_preset(
-                self["productVersion"],
-                f"{version['name']} ({version['status']})",
-                str(version))
+            picked_status = 0
+            picked_version = {}
 
-            current_status = version_picker(version["status"])
+            for version in versions:
+                self.register_plug_preset(
+                    self["productVersion"],
+                    f"{version['name']} ({version['status']})",
+                    str(version))
 
-            if picked_status >= current_status:
-                picked_status = current_status
-                select_preset(self["productVersion"],
-                              f"{version['name']} ({version['status']})")
+                current_status = version_picker(version["status"])
+
+                if picked_status >= current_status:
+                    picked_status = current_status
+                    picked_version = version
+
+            if picked_version:
+                select_preset(
+                    self["productVersion"],
+                    f"{picked_version['name']} ({picked_version['status']})")
 
     def reload_representations(self):
-        version_id = ast.literal_eval(self["productVersion"].getValue())["id"]
-        representations = get_representations(
-            self.get_project_name(),
-            version_id)
+        product_version_value = self["productVersion"].getValue()
 
-        if representations:
-            self.deregister_plug_presetes(self["representation"])
+        if product_version_value:
+            version_id = ast.literal_eval(product_version_value)["id"]
+            representations = get_representations(
+                self.get_project_name(),
+                version_id)
 
-        for i, repr in enumerate(representations):
-            self.register_plug_preset(
-                self["representation"],
-                repr["files"][0]["name"],
-                str(repr["files"][0]))
+            if representations:
+                self.deregister_plug_presetes(self["representation"])
 
-            if i == 0:
-                select_preset(self["representation"],
-                              repr["files"][0]["name"])
+            for i, repr in enumerate(representations):
+                self.register_plug_preset(
+                    self["representation"],
+                    repr["files"][0]["name"],
+                    str(repr["files"][0]))
+
+                if i == 0:
+                    select_preset(self["representation"],
+                                repr["files"][0]["name"])
 
     def reload_project_roots(self):
-        self.deregister_plug_presetes(self["projectRoot"])
-
         project_roots = get_project_roots(self.get_project_name())
+
+        if project_roots:
+            self.deregister_plug_presetes(self["projectRoot"])
 
         for i, (key, value) in enumerate(project_roots.items()):
             self.register_plug_preset(self["projectRoot"], key, value)
@@ -372,16 +383,19 @@ class ProductReader(Gaffer.Box):
                 select_preset(self["projectRoot"], key)
 
     def reload_resolved_path(self):
-        path = ast.literal_eval(self["representation"].getValue())["path"]
+        representation_value = self["representation"].getValue()
 
-        start = path.find("{")
-        end = path.find("}")
+        if representation_value:
+            path = ast.literal_eval(representation_value)["path"]
 
-        if start != -1 and end != -1:
-            root = self["projectRoot"].getValue()
-            resolved_path = path[:start] + root + path[end + 1:]
+            start = path.find("{")
+            end = path.find("}")
 
-            self["fileName"].setValue(resolved_path)
+            if start != -1 and end != -1:
+                root = self["projectRoot"].getValue()
+                resolved_path = path[:start] + root + path[end + 1:]
+
+                self["fileName"].setValue(resolved_path)
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 
@@ -412,10 +426,11 @@ Gaffer.Metadata.registerNode(
 
          "folderPath": [
             "nodule:type", "",
-             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+            "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
          "folderPathCustom": [
-            "nodule:type", ""],
+            "nodule:type", "",
+            "label", "Custom"],
 
         "reloadFolderPath": [
             "nodule:type", "",

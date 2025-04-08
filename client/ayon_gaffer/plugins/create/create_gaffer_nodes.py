@@ -20,7 +20,7 @@ class CreateGafferNodes(GafferCreatorBase):
 
         if len(self.selected_nodes) > 0:
             box_nodes = [node for node in self.selected_nodes
-                         if node.typeName() == "Gaffer::Box"]
+                         if isinstance(node, Gaffer.Box)]
 
             if len(box_nodes) == 1 and len(self.selected_nodes) == 1:
                 # we have one and just one box selected. So just mark

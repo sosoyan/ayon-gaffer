@@ -475,8 +475,6 @@ class ProductReader(Gaffer.Box):
 
                 if resolved_path != filename_value:
                     self["fileName"].setValue(resolved_path)
-                    print("Setting resolved path")
-
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 

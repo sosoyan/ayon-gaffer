@@ -34,6 +34,15 @@ def plug_presets_exists(plug, presets):
     ]
     return existing_presets == presets
 
+def plug_values_exists(plug, values):
+    existing_values = []
+
+    for preset in Gaffer.Metadata.registeredValues(plug):
+        if preset.startswith("preset:"):
+            existing_values.append(Gaffer.Metadata.value(plug, preset))
+
+    return existing_values == values
+
 def get_project_names():
     return ayon_api.get_project_names()
 
@@ -330,7 +339,6 @@ class ProductReader(Gaffer.Box):
             if self.type_filter:
                 product_types = [i for i in product_types
                                 if i in self.type_filter]
-
             if product_types:
                 self.deregister_plug_presetes(self["productType"])
 
@@ -353,9 +361,9 @@ class ProductReader(Gaffer.Box):
             self.get_folder_path(),
             self["productType"].getValue())
 
-        if product_names and not plug_presets_exists(
+        if product_names and not plug_values_exists(
             self["productName"],
-            [i["name"] for i in product_names]):
+            [str(i) for i in product_names]):
 
             selected = self["productName"].getValue()
 
@@ -385,9 +393,9 @@ class ProductReader(Gaffer.Box):
                 self.get_project_name(),
                 product_id)
 
-            if versions and not plug_presets_exists(
+            if versions and not plug_values_exists(
                     self["productVersion"],
-                    [version_status(i) for i in versions]):
+                    [str(i) for i in versions]):
 
                 selected = self["productVersion"].getValue()
 
@@ -419,9 +427,9 @@ class ProductReader(Gaffer.Box):
                 self.get_project_name(),
                 version_id)
 
-            if representations and not plug_presets_exists(
+            if representations and not plug_values_exists(
                     self["representation"],
-                    [i["files"][0]["name"] for i in representations]):
+                    [str(i["files"][0]) for i in representations]):
 
                 selected = self["representation"].getValue()
 
@@ -443,9 +451,9 @@ class ProductReader(Gaffer.Box):
     def reload_project_roots(self):
         project_roots = get_project_roots(self.get_project_name())
 
-        if project_roots and not plug_presets_exists(
+        if project_roots and not plug_values_exists(
             self["projectRoot"],
-            project_roots.keys()):
+            project_roots.values()):
 
             selected = self["projectRoot"].getValue()
 

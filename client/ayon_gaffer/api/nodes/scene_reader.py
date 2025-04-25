@@ -25,7 +25,8 @@ class SceneReader(ProductReader):
         self["out"].setInput(self["SceneReader"]["out"])
 
     def reload_product_types(self):
-        self.type_filter = ["model",
+        self.type_filter = ["usd",
+                            "model",
                             "camera",
                             "layout",
                             "animation",

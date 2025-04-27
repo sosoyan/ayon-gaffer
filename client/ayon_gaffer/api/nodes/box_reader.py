@@ -1,8 +1,12 @@
+import ast
+
+from ayon_core.lib import Logger
 from .product_reader import ProductReader
 
 import Gaffer
 import IECore
 
+log = Logger.get_logger(__name__)
 
 class BoxReader(ProductReader):
 
@@ -31,44 +35,46 @@ class BoxReader(ProductReader):
 
     def reload_content(self, script_node):
 
-        load_reference = self.getChild("loadAsReference")
-
-        if (script_node is None) or (load_reference is None):
+        if script_node is None:
             return
 
         input_plug = self.getChild("in")
-        if input_plug:
-            input_plug = input_plug.getInput()
+        input_plug = input_plug.getInput() if input_plug else None
 
         output_plug = self.getChild("out")
-        if output_plug:
-            output_plug = output_plug.outputs()
+        output_plug = output_plug.outputs() if output_plug else ()
 
         for child in self.children(Gaffer.Node):
                 self.removeChild(child)
 
-        if load_reference.getValue():
-            reference = Gaffer.Reference()
+        product_name_value = self["productName"].getValue()
+        product_name = ast.literal_eval(product_name_value)["name"]
 
-            self.addChild(reference)
+        container = None
 
-            reference.load(self["fileName"].getValue())
-            ref_in = reference.getChild("in")
-            ref_out = reference.getChild("out")
-
-            if ref_in is not None:
-                Gaffer.BoxIO.promote(ref_in)
-
-            if ref_out is not None:
-                Gaffer.BoxIO.promote(ref_out)
-
-            if ref_in and ref_out:
-                self["BoxOut"]["passThrough"].setInput(
-                    self["BoxIn"]["out"])
+        if self["loadAsReference"].getValue():
+            container = Gaffer.Reference(product_name)
+            self.addChild(container)
+            container.load(self["fileName"].getValue())
         else:
+            container = Gaffer.Box(product_name)
+            self.addChild(container)
             script_node.importFile(
                 self["fileName"].getValue(),
-                parent=self)
+                parent=container)
+
+        ref_in = container.getChild("in")
+        ref_out = container.getChild("out")
+
+        if ref_in is not None:
+            Gaffer.BoxIO.promote(ref_in)
+
+        if ref_out is not None:
+            Gaffer.BoxIO.promote(ref_out)
+
+        if ref_in and ref_out:
+            self["BoxOut"]["passThrough"].setInput(
+                self["BoxIn"]["out"])
 
         if input_plug:
             box_in = self.getChild("in")

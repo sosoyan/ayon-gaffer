@@ -44,45 +44,48 @@ class BoxReader(ProductReader):
         output_plug = self.getChild("out")
         output_plug = output_plug.outputs() if output_plug else ()
 
-        for child in self.children(Gaffer.Node):
-            self.removeChild(child)
-
         product_name_value = self["productName"].getValue()
-        product_name = ast.literal_eval(product_name_value)["name"]
 
-        if self["loadAsReference"].getValue():
-            container = Gaffer.Reference(product_name)
-            self.addChild(container)
-            container.load(self["fileName"].getValue())
-        else:
-            container = Gaffer.Box(product_name)
-            self.addChild(container)
-            script_node.importFile(
-                self["fileName"].getValue(),
-                parent=container)
+        if product_name_value:
 
-        box_in = container.getChild("in")
-        box_out = container.getChild("out")
+            for child in self.children(Gaffer.Node):
+                self.removeChild(child)
 
-        if box_in is not None:
-            Gaffer.BoxIO.promote(box_in)
+            product_name = ast.literal_eval(product_name_value)["name"]
 
-        if box_out is not None:
-            Gaffer.BoxIO.promote(box_out)
+            if self["loadAsReference"].getValue():
+                container = Gaffer.Reference(product_name)
+                self.addChild(container)
+                container.load(self["fileName"].getValue())
+            else:
+                container = Gaffer.Box(product_name)
+                self.addChild(container)
+                script_node.importFile(
+                    self["fileName"].getValue(),
+                    parent=container)
 
-        if box_in and box_out:
-            self["BoxOut"]["passThrough"].setInput(
-                self["BoxIn"]["out"])
+            box_in = container.getChild("in")
+            box_out = container.getChild("out")
 
-        if input_plug:
-            box_in = self.getChild("in")
-            if box_in:
-                box_in.setInput(input_plug)
+            if box_in is not None:
+                Gaffer.BoxIO.promote(box_in)
 
-        if output_plug:
-            box_out = self.getChild("out")
-            if box_out:
-                output_plug[0].setInput(box_out)
+            if box_out is not None:
+                Gaffer.BoxIO.promote(box_out)
+
+            if box_in and box_out:
+                self["BoxOut"]["passThrough"].setInput(
+                    self["BoxIn"]["out"])
+
+            if input_plug:
+                box_in = self.getChild("in")
+                if box_in:
+                    box_in.setInput(input_plug)
+
+            if output_plug:
+                box_out = self.getChild("out")
+                if box_out:
+                    output_plug[0].setInput(box_out)
 
     def parent_changed(self, node, _):
         script_node = node.ancestor(Gaffer.ScriptNode)

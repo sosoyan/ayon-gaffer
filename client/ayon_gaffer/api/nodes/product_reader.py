@@ -63,13 +63,16 @@ def get_products(project_name, folder_path):
 
     return []
 
-def get_product_types(project_name, folder_path):
+def get_product_types(project_name, folder_path, filter=[]):
     products = get_products(project_name, folder_path)
     product_types = list(set(
         product['productType'] for product in list(products)))
 
+    if filter:
+        product_types = [i for i in product_types if i in filter]
+
     if not product_types:
-        log.error(f"Can't get product types at '{project_name}{folder_path}'")
+        log.error(f"Can't get product types {filter} at '{project_name}{folder_path}'")
 
     return product_types
 
@@ -328,7 +331,8 @@ class ProductReader(Gaffer.Box):
 
         product_types = get_product_types(
             self.get_project_name(),
-            self.get_folder_path())
+            self.get_folder_path(),
+            self.type_filter)
 
         if product_types and not plug_presets_exists(
             self["productType"],
@@ -336,9 +340,6 @@ class ProductReader(Gaffer.Box):
 
             selected = self["productType"].getValue()
 
-            if self.type_filter:
-                product_types = [i for i in product_types
-                                if i in self.type_filter]
             if product_types:
                 self.deregister_plug_presetes(self["productType"])
 

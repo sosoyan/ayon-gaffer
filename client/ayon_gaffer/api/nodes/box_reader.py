@@ -45,12 +45,10 @@ class BoxReader(ProductReader):
         output_plug = output_plug.outputs() if output_plug else ()
 
         for child in self.children(Gaffer.Node):
-                self.removeChild(child)
+            self.removeChild(child)
 
         product_name_value = self["productName"].getValue()
         product_name = ast.literal_eval(product_name_value)["name"]
-
-        container = None
 
         if self["loadAsReference"].getValue():
             container = Gaffer.Reference(product_name)
@@ -63,16 +61,16 @@ class BoxReader(ProductReader):
                 self["fileName"].getValue(),
                 parent=container)
 
-        ref_in = container.getChild("in")
-        ref_out = container.getChild("out")
+        box_in = container.getChild("in")
+        box_out = container.getChild("out")
 
-        if ref_in is not None:
-            Gaffer.BoxIO.promote(ref_in)
+        if box_in is not None:
+            Gaffer.BoxIO.promote(box_in)
 
-        if ref_out is not None:
-            Gaffer.BoxIO.promote(ref_out)
+        if box_out is not None:
+            Gaffer.BoxIO.promote(box_out)
 
-        if ref_in and ref_out:
+        if box_in and box_out:
             self["BoxOut"]["passThrough"].setInput(
                 self["BoxIn"]["out"])
 

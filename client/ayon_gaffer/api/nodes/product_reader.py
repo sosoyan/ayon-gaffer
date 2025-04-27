@@ -72,7 +72,9 @@ def get_product_types(project_name, folder_path, filter=[]):
         product_types = [i for i in product_types if i in filter]
 
     if not product_types:
-        log.error(f"Can't get product types {filter} at '{project_name}{folder_path}'")
+        log.error(
+            f"Can't get product types \
+            {filter} at '{project_name}{folder_path}'")
 
     return product_types
 

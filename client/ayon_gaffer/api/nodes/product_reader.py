@@ -218,8 +218,7 @@ class ProductReader(Gaffer.Box):
 
         if plug_name in ["reloadAll",
                          "reloadProjectName"]:
-
-            self.reload(ReloadFlag.ALL)
+            self.reload()
 
         elif plug_name in ["projectName",
                            "folderPath",
@@ -332,37 +331,41 @@ class ProductReader(Gaffer.Box):
         select_preset(self["folderPath"], self.current)
 
     def reload_product_types(self):
+        folder_path_value = self.get_folder_path()
 
-        product_types = get_product_types(
-            self.get_project_name(),
-            self.get_folder_path(),
-            self.type_filter)
+        if folder_path_value:
 
-        if product_types and not plug_presets_exists(
-            self["productType"],
-            product_types):
+            product_types = get_product_types(
+                self.get_project_name(),
+                folder_path_value,
+                self.type_filter)
 
-            selected = self["productType"].getValue()
+            if product_types and not plug_presets_exists(
+                self["productType"],
+                product_types):
 
-            if product_types:
-                self.deregister_plug_presetes(self["productType"])
+                selected = self["productType"].getValue()
 
-            for i, p_type in enumerate(product_types):
+                if product_types:
+                    self.deregister_plug_presetes(self["productType"])
 
-                self.register_plug_preset(
-                    self["productType"],
-                    p_type,
-                    p_type)
+                for i, p_type in enumerate(product_types):
 
-                if selected == p_type:
-                    select_preset(self["productType"], p_type)
-                elif i == 0:
-                    select_preset(self["productType"], product_types[0])
+                    self.register_plug_preset(
+                        self["productType"],
+                        p_type,
+                        p_type)
+
+                    if selected == p_type:
+                        select_preset(self["productType"], p_type)
+                    elif i == 0:
+                        select_preset(self["productType"], product_types[0])
 
     def reload_product_names(self):
+        folder_path_value = self.get_folder_path()
         product_type_value = self["productType"].getValue()
 
-        if product_type_value:
+        if folder_path_value and product_type_value:
 
             product_names = get_product_names(
                 self.get_project_name(),
@@ -383,9 +386,7 @@ class ProductReader(Gaffer.Box):
                         product["name"],
                         str(product))
 
-                    if selected == str(product):
-                        select_preset(self["productName"], product["name"])
-                    elif i == 0:
+                    if (selected == str(product)) or (i == 0):
                         select_preset(self["productName"], product["name"])
 
     def reload_product_versions(self):
@@ -449,12 +450,9 @@ class ProductReader(Gaffer.Box):
                         repr["files"][0]["name"],
                         str(repr["files"][0]))
 
-                    if selected == str(repr["files"][0]):
+                    if (selected == str(repr["files"][0])) or (i == 0):
                         select_preset(self["representation"],
-                                    repr["files"][0]["name"])
-                    elif i == 0:
-                        select_preset(self["representation"],
-                                    repr["files"][0]["name"])
+                                      repr["files"][0]["name"])
 
     def reload_project_roots(self):
         project_roots = get_project_roots(self.get_project_name())
@@ -470,9 +468,7 @@ class ProductReader(Gaffer.Box):
             for i, (key, value) in enumerate(project_roots.items()):
                 self.register_plug_preset(self["projectRoot"], key, value)
 
-                if selected == value:
-                    select_preset(self["projectRoot"], key)
-                elif i == 0:
+                if (selected == value) or (i == 0):
                     select_preset(self["projectRoot"], key)
 
     def reload_resolved_path(self):

@@ -1,4 +1,7 @@
 import ast
+from functools import partial
+
+from PySide2 import QtCore
 
 from ayon_core.lib import Logger
 from .product_reader import ProductReader
@@ -11,13 +14,11 @@ log = Logger.get_logger(__name__)
 class BoxReader(ProductReader):
 
     def __init__(self, name="BoxReader"):
-
         ProductReader.__init__(self, name)
+
         self.addChild(Gaffer.BoolPlug("loadAsReference",
                                       Gaffer.Plug.Direction.In,
                                       defaultValue=True))
-
-        self.parentChangedSignal().connect(self.parent_changed)
 
     def plug_set(self, plug):
         super().plug_set(plug)
@@ -25,19 +26,22 @@ class BoxReader(ProductReader):
         if (plug.getName() == "fileName" or
             plug.getName() == "loadAsReference"):
 
-            script_node = plug.node().ancestor(Gaffer.ScriptNode)
-            self.reload_content(script_node)
+            if self.scriptNode() is not None:
+                self.reload_content()
+
+        # Make sure the node is added to the graph before reloading
+        elif (plug.getName() == "x" and
+              self.scriptNode() is not None and
+              not self.children(Gaffer.Node)):
+
+                self.reload_content()
 
     def reload_product_types(self):
         self.type_filter = ["gafferNodes"]
 
         super().reload_product_types()
 
-    def reload_content(self, script_node):
-
-        if script_node is None:
-            return
-
+    def reload_content(self):
         input_plug = self.getChild("in")
         input_plug = input_plug.getInput() if input_plug else None
 
@@ -54,18 +58,19 @@ class BoxReader(ProductReader):
             product_name = ast.literal_eval(product_name_value)["name"]
 
             if self["loadAsReference"].getValue():
-                container = Gaffer.Reference(product_name)
-                self.addChild(container)
-                container.load(self["fileName"].getValue())
+                box = Gaffer.Reference(product_name)
+                self.addChild(box)
+                box.load(self["fileName"].getValue())
             else:
-                container = Gaffer.Box(product_name)
-                self.addChild(container)
-                script_node.importFile(
+                box = Gaffer.Box(product_name)
+                self.addChild(box)
+                self.scriptNode().importFile(
                     self["fileName"].getValue(),
-                    parent=container)
+                    parent=box,
+                    continueOnError=True)
 
-            box_in = container.getChild("in")
-            box_out = container.getChild("out")
+            box_in = box.getChild("in")
+            box_out = box.getChild("out")
 
             if box_in is not None:
                 Gaffer.BoxIO.promote(box_in)
@@ -87,11 +92,8 @@ class BoxReader(ProductReader):
                 if box_out:
                     output_plug[0].setInput(box_out)
 
-    def parent_changed(self, node, _):
-        script_node = node.ancestor(Gaffer.ScriptNode)
-        self.reload_content(script_node)
 
-class ReferenceReaderSerialiser(Gaffer.NodeSerialiser):
+class BoxReaderSerialiser(Gaffer.NodeSerialiser):
 
     def childNeedsSerialisation(self, child, serialisation):
 
@@ -107,7 +109,7 @@ IECore.registerRunTimeTyped(BoxReader, typeName="AyonBoxReader")
 
 Gaffer.Serialisation.registerSerialiser(
     BoxReader,
-    ReferenceReaderSerialiser()
+    BoxReaderSerialiser()
 )
 
 Gaffer.Metadata.registerNode(

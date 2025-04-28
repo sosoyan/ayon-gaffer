@@ -73,8 +73,8 @@ def get_product_types(project_name, folder_path, filter=[]):
 
     if not product_types:
         log.error(
-            f"Can't get product types \
-            {filter} at '{project_name}{folder_path}'")
+            ("Can't find product types with filter"
+            f"{filter} at '{project_name}{folder_path}'"))
 
     return product_types
 
@@ -84,7 +84,8 @@ def get_product_names(project_name, folder_path, product_type):
                     i['productType'] == product_type]
 
     if not product_names:
-        log.error(f"Can't get product names at '{project_name}{folder_path}'")
+        log.error(
+            f"Can't find product names at '{project_name}{folder_path}'")
 
     return product_names
 
@@ -92,7 +93,8 @@ def get_product_versions(project_name, product_id):
     versions = ayon_api.get_versions(project_name, product_ids=[product_id])
 
     if not versions:
-        log.error(f"Can't get product versions for product id: '{product_id}'")
+        log.error(
+            f"Can't find product versions for product id: '{product_id}'")
 
     return list(versions)
 
@@ -358,30 +360,33 @@ class ProductReader(Gaffer.Box):
                     select_preset(self["productType"], product_types[0])
 
     def reload_product_names(self):
+        product_type_value = self["productType"].getValue()
 
-        product_names = get_product_names(
-            self.get_project_name(),
-            self.get_folder_path(),
-            self["productType"].getValue())
+        if product_type_value:
 
-        if product_names and not plug_values_exists(
-            self["productName"],
-            [str(i) for i in product_names]):
+            product_names = get_product_names(
+                self.get_project_name(),
+                self.get_folder_path(),
+                product_type_value)
 
-            selected = self["productName"].getValue()
+            if product_names and not plug_values_exists(
+                self["productName"],
+                [str(i) for i in product_names]):
 
-            self.deregister_plug_presetes(self["productName"])
+                selected = self["productName"].getValue()
 
-            for i, product in enumerate(product_names):
-                self.register_plug_preset(
-                    self["productName"],
-                    product["name"],
-                    str(product))
+                self.deregister_plug_presetes(self["productName"])
 
-                if selected == str(product):
-                    select_preset(self["productName"], product["name"])
-                elif i == 0:
-                    select_preset(self["productName"], product["name"])
+                for i, product in enumerate(product_names):
+                    self.register_plug_preset(
+                        self["productName"],
+                        product["name"],
+                        str(product))
+
+                    if selected == str(product):
+                        select_preset(self["productName"], product["name"])
+                    elif i == 0:
+                        select_preset(self["productName"], product["name"])
 
     def reload_product_versions(self):
 

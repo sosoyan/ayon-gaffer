@@ -25,7 +25,7 @@ class BoxReader(ProductReader):
             self.reload_content()
 
         # Make sure the node is added to the graph before reloading
-        elif (plug.getName() == "__uiPosition" and
+        elif (plug.getName() == "x" and
               not self.children(Gaffer.Node)):
             self.reload_content()
 

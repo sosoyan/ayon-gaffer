@@ -114,7 +114,7 @@ class ReloadFlag(IntFlag):
     PRODUCT_VERSION = 0x0020
     REPRESENTATION = 0x0040
     PROJECT_ROOT = 0x0080
-    RESOLVED_PATH = 0x0100
+    FILE_NAME = 0x0100
 
     ALL = (
         PROJECT_NAME
@@ -124,7 +124,7 @@ class ReloadFlag(IntFlag):
         | PRODUCT_VERSION
         | REPRESENTATION
         | PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
 
     PRODUCT_TYPE_DOWNWARD = (
@@ -133,29 +133,29 @@ class ReloadFlag(IntFlag):
         | PRODUCT_VERSION
         | REPRESENTATION
         | PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
     PRODUCT_NAME_DOWNWARD = (
         PRODUCT_NAME
         | PRODUCT_VERSION
         | REPRESENTATION
         | PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
     PRODUCT_VERSION_DOWNWARD = (
         PRODUCT_VERSION
         | REPRESENTATION
         | PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
     REPRESENTATION_DOWNWARD = (
         REPRESENTATION
         | PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
     PROJECT_ROOT_DOWNWARD = (
         PROJECT_ROOT
-        | RESOLVED_PATH
+        | FILE_NAME
     )
 
 class ProductReader(Gaffer.Box):
@@ -167,6 +167,7 @@ class ProductReader(Gaffer.Box):
         self.current = "current context"
         self.custom = "custom"
         self.type_filter =[]
+        self.file_name = ""
 
         self.addChild(Gaffer.IntPlug("reloadAll",
                                      Gaffer.Plug.Direction.In))
@@ -214,35 +215,34 @@ class ProductReader(Gaffer.Box):
         self.reload()
 
     def plug_set(self, plug):
-        plug_name = plug.getName()
 
-        if plug_name in ["reloadAll",
-                         "reloadProjectName"]:
+        if plug.getName() in ["reloadAll",
+                              "reloadProjectName"]:
             self.reload()
 
-        elif plug_name in ["projectName",
-                           "folderPath",
-                           "reloadFolderPath",
-                           "folderPathCustom",
-                           "reloadFolderPathCustom",
-                           "reloadProductType"]:
+        elif plug.getName() in ["projectName",
+                                "folderPath",
+                                "reloadFolderPath",
+                                "folderPathCustom",
+                                "reloadFolderPathCustom",
+                                "reloadProductType"]:
 
             self.reload(ReloadFlag.PRODUCT_TYPE_DOWNWARD)
 
-        elif plug_name in ["productType", "reloadProductName"]:
+        elif plug.getName() in ["productType", "reloadProductName"]:
             self.reload(ReloadFlag.PRODUCT_NAME_DOWNWARD)
 
-        elif plug_name in ["productName", "reloadProductVersion"]:
+        elif plug.getName() in ["productName", "reloadProductVersion"]:
             self.reload(ReloadFlag.PRODUCT_VERSION_DOWNWARD)
 
-        elif plug_name in ["productVersion", "reloadRepresentation"]:
+        elif plug.getName() in ["productVersion", "reloadRepresentation"]:
             self.reload(ReloadFlag.REPRESENTATION_DOWNWARD)
 
-        elif plug_name in ["representation", "reloadProjectRoot"]:
+        elif plug.getName() in ["representation", "reloadProjectRoot"]:
             self.reload(ReloadFlag.PROJECT_ROOT_DOWNWARD)
 
-        elif plug_name in ["projectRoot", "reloadResolvedPath"]:
-            self.reload(ReloadFlag.RESOLVED_PATH)
+        elif plug.getName() in ["projectRoot", "refreshCount"]:
+            self.reload(ReloadFlag.FILE_NAME)
 
     def register_plug_preset(self, plug, name, value):
         Gaffer.Metadata.registerPlugValue(plug, "preset:" + name, value)
@@ -300,8 +300,8 @@ class ProductReader(Gaffer.Box):
             self.reload_representations()
         if flag & ReloadFlag.PROJECT_ROOT:
             self.reload_project_roots()
-        if flag & ReloadFlag.RESOLVED_PATH:
-            self.reload_resolved_path()
+        if flag & ReloadFlag.FILE_NAME:
+            self.reload_file_name()
 
     def reload_project_names(self):
 
@@ -471,22 +471,22 @@ class ProductReader(Gaffer.Box):
                 if (selected == value) or (i == 0):
                     select_preset(self["projectRoot"], key)
 
-    def reload_resolved_path(self):
+    def reload_file_name(self):
         representation_value = self["representation"].getValue()
 
         if representation_value:
             path = ast.literal_eval(representation_value)["path"]
-
             start = path.find("{")
             end = path.find("}")
 
             if start != -1 and end != -1:
                 root_value = self["projectRoot"].getValue()
-                filename_value = self["fileName"].getValue()
-                resolved_path = path[:start] + root_value + path[end + 1:]
+                file_name_value = self["fileName"].getValue()
+                file_name = path[:start] + root_value + path[end + 1:]
 
-                if resolved_path != filename_value:
-                    self["fileName"].setValue(resolved_path)
+                if file_name != file_name_value:
+                    self["fileName"].setValue(file_name)
+                    self.file_name = file_name
 
 IECore.registerRunTimeTyped(ProductReader, typeName="AyonProductReader")
 

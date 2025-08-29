@@ -10,10 +10,15 @@ from ayon_core.pipeline import (get_current_project_name,
 
 from ayon_gaffer.api.lib import (GafferSignal, update_context)
 
-from PySide2 import QtCore
 
 import IECore
+import Gaffer
 import GafferUI
+
+if Gaffer.About.versionString().startswith("1.6"):
+    from PySide6 import QtCore
+else:
+    from PySide2 import QtCore
 
 
 log = Logger.get_logger(__name__)

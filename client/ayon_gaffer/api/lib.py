@@ -1,4 +1,5 @@
 import re
+import platform
 from typing import Optional
 
 import ayon_api
@@ -14,6 +15,11 @@ import GafferScene
 
 
 log = Logger.get_logger(__name__)
+
+def get_project_roots(project_name):
+    return ayon_api.get_project_roots_by_platform(
+        project_name,
+        platform.system().lower())
 
 def make_box(name: str,
              inputs: list = ["in"],
@@ -428,8 +434,9 @@ def setup_project(script_container=None, script_node=None):
 
         if retrieve_context():
             return
-
     project_name = get_current_project_name()
+    project_roots = get_project_roots(project_name)
+    project_root_work  = next(iter(project_roots))
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
@@ -446,10 +453,13 @@ def setup_project(script_container=None, script_node=None):
     task_attrib = task.get("attrib")
 
     if task_attrib:
-        task_attrib.update({"projectName": project_name,
-                            "folderPath": folder_path,
-                            "taskName": task_name,
-                            "tags": " ".join(tags)})
+        task_attrib.update({
+            f"projectRoot:{project_root_work}": project_roots[project_root_work],
+            "projectName": project_name,
+            "folderPath": folder_path,
+            "taskName": task_name,
+            "tags": " ".join(tags)
+            })
 
         set_script_settings(GafferScript.node, task_attrib)
         set_script_variables(GafferScript.node, task_attrib)

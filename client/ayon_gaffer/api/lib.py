@@ -330,7 +330,7 @@ def retrieve_context():
     Tries to retrieve the saved script context by setting project, folder,
     and task from the Gaffer script variables and updating the context.
     """
-    context = GafferScript.node.context()
+    context = GafferScript.get_node().context()
     attrs = ["ayon:projectName", "ayon:folderPath", "ayon:taskName"]
 
     project_name, folder_path, task_name = (context.get(i) for i in attrs)
@@ -429,8 +429,8 @@ def setup_project(script_container=None, script_node=None):
     for the current Ayon context - project/folder/task
     """
     if all((script_container, script_node)):
-        GafferScript.node = script_node
-        GafferScript.container = script_container
+        GafferScript.set_node(script_node)
+        GafferScript.set_container(script_container)
 
         if retrieve_context():
             return
@@ -440,9 +440,9 @@ def setup_project(script_container=None, script_node=None):
     folder_path = get_current_folder_path()
     task_name = get_current_task_name()
 
-    GafferSignal.pre_context_changed()(GafferScript.node)
+    GafferSignal.pre_context_changed()(GafferScript.get_node())
 
-    GafferScript.node["variables"]["projectRootDirectory"]["value"].setValue(
+    GafferScript.get_node()["variables"]["projectRootDirectory"]["value"].setValue(
         "${AYON_WORKDIR}")
 
     task = ayon_api.get_task_by_folder_path(project_name,
@@ -461,10 +461,10 @@ def setup_project(script_container=None, script_node=None):
             "tags": " ".join(tags)
             })
 
-        set_script_settings(GafferScript.node, task_attrib)
-        set_script_variables(GafferScript.node, task_attrib)
+        set_script_settings(GafferScript.get_node(), task_attrib)
+        set_script_variables(GafferScript.get_node(), task_attrib)
 
-    GafferSignal.post_context_changed()(GafferScript.node)
+    GafferSignal.post_context_changed()(GafferScript.get_node())
 
 def update_context(folder, task=None):
     """
@@ -520,7 +520,7 @@ class GafferSignal(object):
         """
         return cls.__post_context_changed
 
-class GafferScript(object):
+class GafferScript:
     """
     GafferScript is a singleton class that manages a node and a container.
     """
@@ -528,23 +528,23 @@ class GafferScript(object):
     __container = None
     __instance = None
 
-    @property
-    def node(self):
-        return self.__node
-
-    @node.setter
-    def node(self, value):
-        self.__node = value
-
-    @property
-    def container(self):
-        return self.__container
-
-    @container.setter
-    def container(self, value):
-        self.__container = value
-
     def __new__(cls, *args, **kwargs):
         if cls.__instance is None:
             cls.__instance = super().__new__(cls)
         return cls.__instance
+
+    @classmethod
+    def get_node(cls):
+        return cls.__node
+
+    @classmethod
+    def set_node(cls, value):
+        cls.__node = value
+
+    @classmethod
+    def get_container(cls):
+        return cls.__container
+
+    @classmethod
+    def set_container(cls, value):
+        cls.__container = value

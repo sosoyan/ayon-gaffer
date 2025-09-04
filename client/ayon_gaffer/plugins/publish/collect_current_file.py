@@ -14,12 +14,12 @@ class CollectCurrentScriptGaffer(pyblish.api.ContextPlugin):
     def process(self, context):
         """Collect all image sequence tools"""
 
-        assert GafferScript.node, "Must have active Gaffer script"
-        context.data["currentScript"] = GafferScript.node
-        self.log.info(f"Collected currentScript:[{GafferScript.node}],")
+        assert GafferScript.get_node(), "Must have active Gaffer script"
+        context.data["currentScript"] = GafferScript.get_node()
+        self.log.info(f"Collected currentScript:[{GafferScript.get_node()}],")
 
         # Store path to current file
-        filepath = GafferScript.node["fileName"].getValue()
+        filepath = GafferScript.get_node()["fileName"].getValue()
         context.data['currentFile'] = filepath
         self.log.info(f"Collected currentFile:[{filepath}],")
 

@@ -51,7 +51,7 @@ class GafferLoadScene(GafferLoaderBase):
     def load(self, context, name, namespace, options):
         # Create the Loader with the filename path set
 
-        script = GafferScript.node
+        script = GafferScript.get_node()
 
         load_override = options.get("load_override", "<use settings>")
 

@@ -23,7 +23,7 @@ class GafferLoadReference(GafferLoaderBase):
         path = self.filepath_from_context(context).replace("\\", "/")
 
         reference = Gaffer.Reference(name)
-        GafferScript.node.addChild(reference)
+        GafferScript.get_node().addChild(reference)
         reference.load(path)
 
         imprint_container(reference,

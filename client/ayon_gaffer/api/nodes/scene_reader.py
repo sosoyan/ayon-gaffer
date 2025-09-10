@@ -25,14 +25,24 @@ class SceneReader(ProductReader):
         self["out"].setInput(self["SceneReader"]["out"])
 
     def reload_product_types(self):
-        self.type_filter = ["usd",
-                            "model",
-                            "camera",
-                            "layout",
-                            "animation",
-                            "fx"]
+        self.type_filter = [
+            "usd",
+            "model",
+            "camera",
+            "layout",
+            "animation",
+            "fx"
+            ]
 
         super().reload_product_types()
+
+    def reload_representations(self):
+        self.representation_filter = [
+            ".abc",
+            ".usd"
+            ]
+
+        super().reload_representations()
 
 class SceneReaderSerialiser(Gaffer.NodeSerialiser):
 

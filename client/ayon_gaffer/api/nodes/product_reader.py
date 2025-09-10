@@ -57,7 +57,7 @@ def get_products(project_name, folder_path):
     try:
         folder = ayon_api.get_folder_by_path(project_name, folder_path)
     except ayon_api.exceptions.GraphQlQueryFailed:
-        pass
+        return []
 
     if folder is not None:
         folder_id = folder.get("id")
@@ -65,21 +65,20 @@ def get_products(project_name, folder_path):
 
     return []
 
-def get_product_types(project_name, folder_path, filter=[]):
+def get_product_types(project_name, folder_path):
+    product_types = []
+
     if project_name and folder_path:
         products = get_products(project_name, folder_path)
         product_types = list(set(
             product['productType'] for product in list(products)))
 
-        if filter:
-            product_types = [i for i in product_types if i in filter]
-
         if not product_types:
             log.error(
-                ("Can't find product types with filter"
-                f"{filter} at '{project_name}{folder_path}'"))
+                f"Can't find product types at '{project_name}{folder_path}'"
+                )
 
-        return product_types
+    return product_types
 
 def get_product_names(project_name, folder_path, product_type):
     if project_name and folder_path and product_type:
@@ -89,28 +88,34 @@ def get_product_names(project_name, folder_path, product_type):
 
         if not product_names:
             log.error(
-                f"Can't find product names at '{project_name}{folder_path}'")
+                f"Can't find product names at '{project_name}{folder_path}'"
+                )
 
         return product_names
 
 def get_product_versions(project_name, product_id):
     if project_name and product_id:
-        versions = ayon_api.get_versions(project_name, product_ids=[product_id])
+        versions = ayon_api.get_versions(project_name,
+                                         product_ids=[product_id]
+                                         )
 
         if not versions:
             log.error(
-                f"Can't find product versions for product id: '{product_id}'")
+                f"Can't find product versions for product id: '{product_id}'"
+                )
 
         return list(versions)
 
 def get_representations(project_name, version_id):
+    representations = []
+
     if project_name and version_id:
         representations = ayon_api.get_representations(
             project_name,
             version_ids=[version_id],
             fields=["files"])
 
-        return list(representations)
+    return list(representations)
 
 class ReloadFlag(IntFlag):
     PROJECT_NAME = 0x0002
@@ -172,7 +177,8 @@ class ProductReader(Gaffer.Box):
 
         self.current = "current context"
         self.custom = "custom"
-        self.type_filter =[]
+        self.type_filter = []
+        self.representation_filter = []
         self.file_name = ""
 
         self.addChild(Gaffer.IntPlug("reloadAll",
@@ -210,7 +216,7 @@ class ProductReader(Gaffer.Box):
         self.addChild(Gaffer.StringPlug("projectRoot",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("reloadProjectRoot",
-                                     Gaffer.Plug.Direction.In)),
+                                     Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("fileName",
                                         Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.IntPlug("refreshCount",
@@ -275,7 +281,7 @@ class ProductReader(Gaffer.Box):
 
     def get_folder_path(self):
         folder_path = self["folderPath"].getValue()
-        
+
         script_node = GafferScript.get_node()
 
         if script_node:
@@ -353,8 +359,14 @@ class ProductReader(Gaffer.Box):
 
             product_types = get_product_types(
                 self.get_project_name(),
-                folder_path_value,
-                self.type_filter)
+                folder_path_value)
+
+            if self.type_filter:
+                product_types = [
+                    rep for rep in product_types if any(
+                        key in rep for key in self.type_filter
+                    )
+                ]
 
             if product_types and not plug_presets_exists(
                 self["productType"],
@@ -451,6 +463,13 @@ class ProductReader(Gaffer.Box):
             representations = get_representations(
                 self.get_project_name(),
                 version_id)
+
+            if self.representation_filter:
+                representations = [
+                    rep for rep in representations
+                    if any(key in str(rep["files"][0])
+                           for key in self.representation_filter)
+                ]
 
             if representations and not plug_values_exists(
                     self["representation"],

@@ -485,7 +485,7 @@ def update_context(folder, task=None):
             return False
 
         task = next((t for t in tasks if t["taskType"]
-                     in {"Lookdev", "Lighting"}), tasks[0])
+                     in {"look", "lookdev", "light", "lighting"}), tasks[0])
 
     context_tools.change_current_context(folder, task)
 

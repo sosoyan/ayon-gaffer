@@ -176,7 +176,8 @@ class ProductReader(Gaffer.Box):
         Gaffer.Box.__init__(self, name)
 
         self.autoReload = None
-        self.current = "current context"
+        self.ayon_project_name = "${ayon:projectName}"
+        self.ayon_folder_path = "${ayon:folderPath}"
         self.custom = "custom"
         self.type_filter = []
         self.representation_filter = []
@@ -188,12 +189,12 @@ class ProductReader(Gaffer.Box):
                                       Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
-                                        self.current))
+                                        self.ayon_project_name))
         self.addChild(Gaffer.IntPlug("reloadProjectName",
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("folderPath",
                                         Gaffer.Plug.Direction.In,
-                                        self.current))
+                                        self.ayon_folder_path))
         self.addChild(Gaffer.IntPlug("reloadFolderPath",
                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("folderPathCustom",
@@ -286,7 +287,7 @@ class ProductReader(Gaffer.Box):
         if script_node:
             script_variables = script_node["variables"]
 
-            if (project_name == self.current):
+            if (project_name == self.ayon_project_name):
                 return script_variables["ayon:projectName"]["value"].getValue()
 
             return project_name
@@ -299,7 +300,7 @@ class ProductReader(Gaffer.Box):
         if script_node:
             script_variables = script_node["variables"]
 
-            if (folder_path == self.current):
+            if (folder_path == self.ayon_folder_path):
                 Gaffer.Metadata.registerValue(
                     self["folderPathCustom"], "plugValueWidget:type", "")
                 Gaffer.Metadata.registerValue(
@@ -342,7 +343,7 @@ class ProductReader(Gaffer.Box):
 
     def reload_project_names(self):
 
-        project_names = [self.current] + get_project_names()
+        project_names = [self.ayon_project_name] + get_project_names()
 
         if not plug_presets_exists(
             self["projectName"],
@@ -357,15 +358,15 @@ class ProductReader(Gaffer.Box):
             if selected in project_names:
                 select_preset(self["projectName"], selected)
             else:
-                select_preset(self["projectName"], self.current)
+                select_preset(self["projectName"], self.ayon_project_name)
 
     def reload_folder_path(self):
-        self["folderPath"].setValue(self.current)
+        self["folderPath"].setValue(self.ayon_folder_path)
 
-        for preset in [self.current, self.custom]:
+        for preset in [self.ayon_folder_path, self.custom]:
             self.register_plug_preset(self["folderPath"], preset, preset)
 
-        select_preset(self["folderPath"], self.current)
+        select_preset(self["folderPath"], self.ayon_folder_path)
 
     def reload_product_types(self):
         folder_path_value = self.get_folder_path()

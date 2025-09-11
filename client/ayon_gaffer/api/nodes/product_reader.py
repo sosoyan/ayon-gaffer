@@ -7,7 +7,7 @@ import ayon_api
 import ayon_api.exceptions
 
 from ayon_core.lib import Logger
-from ayon_gaffer.api.lib import GafferScript
+from ayon_gaffer.api.lib import GafferSignal, GafferScript
 from ayon_core.pipeline import (get_current_project_name,
                                 get_current_folder_path)
 
@@ -175,6 +175,7 @@ class ProductReader(Gaffer.Box):
 
         Gaffer.Box.__init__(self, name)
 
+        self.autoReload = None
         self.current = "current context"
         self.custom = "custom"
         self.type_filter = []
@@ -183,6 +184,8 @@ class ProductReader(Gaffer.Box):
 
         self.addChild(Gaffer.IntPlug("reloadAll",
                                      Gaffer.Plug.Direction.In))
+        self.addChild(Gaffer.BoolPlug("autoReload",
+                                      Gaffer.Plug.Direction.In))
         self.addChild(Gaffer.StringPlug("projectName",
                                         Gaffer.Plug.Direction.In,
                                         self.current))
@@ -231,6 +234,15 @@ class ProductReader(Gaffer.Box):
         if plug.getName() in ["reloadAll",
                               "reloadProjectName"]:
             self.reload()
+
+        elif plug.getName() == "autoReload":
+
+            if self["autoReload"].getValue():
+                self.autoReload = GafferSignal.post_context_changed().connect(
+                    self.auto_reload, 
+                    scoped = False)
+            else:
+                self.autoReload.disconnect()
 
         elif plug.getName() in ["projectName",
                                 "folderPath",
@@ -305,6 +317,9 @@ class ProductReader(Gaffer.Box):
                     "GafferUI.RefreshPlugValueWidget")
 
         return self["folderPathCustom"].getValue()
+
+    def auto_reload(self, script_node):
+        self.reload()
 
     def reload(self, flag=ReloadFlag.ALL):
 

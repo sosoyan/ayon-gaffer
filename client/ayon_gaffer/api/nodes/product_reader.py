@@ -556,9 +556,12 @@ Gaffer.Metadata.registerNode(
             "nodule:type", "",
             "plugValueWidget:type", "GafferUI.RefreshPlugValueWidget"],
 
+        "autoReload": [
+            "nodule:type", ""],
+
          "projectName": [
             "nodule:type", "",
-             "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
+            "plugValueWidget:type", "GafferUI.PresetsPlugValueWidget"],
 
         "reloadProjectName": [
             "nodule:type", "",

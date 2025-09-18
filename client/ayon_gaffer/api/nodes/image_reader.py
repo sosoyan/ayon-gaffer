@@ -32,6 +32,7 @@ class ImageReader(ProductReader):
 
     def reload_product_types(self):
         self.type_filter = ["image",
+                            "texture",
                             "render"]
 
         super().reload_product_types()

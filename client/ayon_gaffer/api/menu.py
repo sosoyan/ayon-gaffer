@@ -15,7 +15,7 @@ import IECore
 import Gaffer
 import GafferUI
 
-if Gaffer.About.versionString().startswith("1.6"):
+if Gaffer.About.milestoneVersion() == 1 and Gaffer.About.majorVersion() > 6:
     from PySide6 import QtCore
 else:
     from PySide2 import QtCore
